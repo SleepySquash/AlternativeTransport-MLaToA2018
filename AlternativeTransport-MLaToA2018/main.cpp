@@ -6,232 +6,141 @@
 //  Copyright © 2018 Melancholy Hill. All rights reserved.
 //
 
-#include <iostream>
-#include <vector>
-
-#include <fstream>
-#include <codecvt>
-
-using std::cin;
-using std::cout;
-using std::endl;
-using std::vector;
-
-
-std::wstring ParseUntil(std::wstring line, const char until, unsigned int from)
-{
-    unsigned int pos{ from };
-    std::wstring text = L"";
-    bool Found{ false };
-    
-    while (!Found && pos < line.length())
-    {
-        if (!(Found = (line[pos] == until)))
-        {
-            if (line[pos] != 13)
-                text += line[pos];
-            pos++;
-        }
-    }
-    
-    return text;
-}
-
-
-
-std::string utf8(const std::wstring& wstr)
-{
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::string u8str = converter.to_bytes(wstr);
-    return u8str;
-}
-
-
-struct Vertex;
-struct Edge
-{
-    Vertex* to{ nullptr };
-    double weight{ 0 };
-    bool out{ false };
-    bool in{ false };
-    
-    Edge(Vertex* to, double weight, bool out = true, bool in = true) : to(to), weight(weight), out(out), in(in) { }
-};
-
-struct Vertex
-{
-    vector<Edge*> edges;
-    
-    ~Vertex() { for (int i = 0; i < edges.size(); ++i) { delete edges[i]; edges[i] = nullptr; } }
-    void Link(Vertex* to, double weight, bool out = true, bool in = true) { edges.push_back(new Edge(to, weight, out, in)); }
-};
-
-struct Graph
-{
-    vector<Vertex*> vertexes;
-    
-    ~Graph() { for (int i = 0; i < vertexes.size(); ++i) { delete vertexes[i]; vertexes[i] = nullptr; } }
-    void Push(Vertex* v) { vertexes.push_back(v); }
-    Vertex* operator[](int i) { return vertexes[i]; }
-    unsigned long size() { return vertexes.size(); }
-    void PrintHierarchy()
-    {
-        for (auto v : *this)
-        {
-            cout << "- Вершина " << v << endl;
-            for (auto e : v->edges)
-                cout << "---- " << e->to << " " << e->weight << " " << e->out << " " << e->in << endl;
-            cout << endl;
-        }
-    }
-    void Load(const std::wstring& filename)
-    {
-        std::wifstream wif;
-#ifdef _WIN32
-        wif.open(filename);
-#else
-        wif.open(utf8(filename));
+#ifdef __APPLE__
+    #include "TargetConditionals.h"
+    #if TARGET_OS_IPHONE
+        #include <SFML/Main.hpp>
+    #endif
 #endif
-        wif.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
-        
-        if (wif.is_open())
-        {
-            std::wstring line;
-            
-            std::getline(wif, line);
-            unsigned long size = std::atol(utf8(line).c_str());
-            if (size != 0)
-            {
-                vertexes.resize(size);
-                for (int i = 0; i < size; ++i)
-                    vertexes[i] = new Vertex();
-                while (!wif.eof())
-                {
-                    std::getline(wif, line);
-                    if (line.length() != 0)
-                    {
-                        unsigned int pos = 0;
-                        std::wstring v1 = ParseUntil(line, '-', pos);
-                        pos += v1.length() + 1;
-                        
-                        long from = 0;
-                        long to = 0;
-                        double weight = 0;
-                        bool out = true;
-                        bool in = true;
-                        
-                        if (v1.length() != 0)
-                        {
-                            from = std::atol(utf8(v1).c_str());
-                            std::wstring v2 = ParseUntil(line, ' ', pos);
-                            pos += v2.length() + 1;
-                            to = std::atol(utf8(v2).c_str());
-                            
-                            std::wstring v3 = ParseUntil(line, ' ', pos);
-                            pos += v3.length() + 1;
-                            weight = std::atof(utf8(v3).c_str());
-                            
-                            std::wstring v4 = ParseUntil(line, ' ', pos);
-                            pos += v4.length() + 1;
-                            if (v4.length() != 0)
-                            {
-                                out = (v4 == L"1") ? true : false;
-                                std::wstring v5 = ParseUntil(line, ' ', pos);
-                                in = (v5 == L"1") ? true : false;
-                            }
-                            
-                            vertexes[from]->Link(vertexes[to], weight, out, in);
-                        }
-                        
-                    }
-                }
-            }
-        }
-    }
-    void Save(const std::wstring& filename)
-    {
-        // TODO
-    }
-    
-    inline std::vector<Vertex*>::iterator begin() noexcept { return vertexes.begin(); }
-    inline std::vector<Vertex*>::const_iterator cbegin() const noexcept { return vertexes.cbegin(); }
-    inline std::vector<Vertex*>::iterator end() noexcept { return vertexes.end(); }
-    inline std::vector<Vertex*>::const_iterator cend() const noexcept { return vertexes.cend(); }
-};
 
+#include <SFML/Audio.hpp>
+#include <SFML/Graphics.hpp>
 
+#include "Essentials/ResourcePath.hpp"
+#include "Essentials/Base.hpp"
+#include "Engine/StaticMethods.hpp"
+#include "Engine/EntitySystem.hpp"
 
+#include "Graph/Graph.hpp"
+#include "Components/EssentialComponents.hpp"
+
+using namespace at;
 
 int main()
 {
-    Graph graph; // Граф
-    graph.Load(L"in.txt");
+#ifdef SFML_SYSTEM_IOS
+    sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "AlternativeTransport-MLaToA2018", sf::Style::Default);
+#else
+    #ifdef SFML_SYSTEM_ANDROID
+        sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "AlternativeTransport-MLaToA2018", sf::Style::Default);
+    #else
+        sf::RenderWindow window(sf::VideoMode(sf::VideoMode::getDesktopMode().width >= 1280 ? 1280 : sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height >= 880 ? 800 : sf::VideoMode::getDesktopMode().height - 80), "AlternativeTransport-MLaToA2018");
+    #endif
+#endif
+    gs::width = window.getSize().x;
+    gs::height = window.getSize().y;
+    
+    window.setFramerateLimit(gs::framerateLimit);
+    window.setVerticalSyncEnabled(gs::isVerticalSyncEnabled);
+    
+    sf::Image icon;
+    if (!icon.loadFromFile(resourcePath() + "Data/Images/icon.png"))
+        return EXIT_FAILURE;
+    window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
+
+    sf::Text text;
+    text.setString("Hello, SFML!");
+    text.setCharacterSize(50);
+    if (fc::GetFont(L"sansation.ttf") != nullptr)
+        text.setFont(*fc::GetFont(L"sansation.ttf"));
+    text.setFillColor(sf::Color::White);
     
     
-    // Можно сначала создавать вершины, делать между ними связи, а потом вставлять их в граф
-    /*Vertex* A = new Vertex();
-    Vertex* B = new Vertex();
-    A->Link(B, 5, true, false);
-    B->Link(A, 5, false, true);
-    graph.Push(A);
-    graph.Push(B);
+    EntitySystem system;
     
-    // А можно сначала вставить вершины в граф, а потом работать с ними (учитывая индексы, конечно)
-    graph.Push(new Vertex());
-    graph.Push(new Vertex());
-    graph[2]->Link(graph[3], 12, true, false);
-    graph[3]->Link(graph[2], 12, false, true);
+    ///----------------------------------------------------------
+    /// \brief Entity to hold novel and stuff it depends on
+    ///
+    /// Entity holds the novel itself in order to have some ierarchy of entities.
+    /// It also may hold some libraries etc that novel depends on.
+    ///
+    ///----------------------------------------------------------
+    Entity* Elizabeth = system.AddEntity();
+    {
+        //Elizabeth->AddComponent<ns::NovelComponents::Novel>("Novels/Bundle/scen.nsdat");
+    }
     
-    // Задаём ещё связи любым методом
-    A->Link(graph[3], 52);
-    graph[3]->Link(A, 52);*/
+    ///----------------------------------------------------------
+    /// \brief Entity to hold essential components
+    ///
+    /// Entity holds components like always-on debug UI layer, system's components and other essential stuff.
+    /// It also may hold components like NovelComponent that runs the novel, cuz it has to be essential component.
+    ///
+    ///----------------------------------------------------------
+    Entity* Shimakaze = system.AddEntity();
+    {
+        Shimakaze->AddComponent<EssentialComponents::DebugComponent>("Update 0 build 1");
+    }
     
+    
+    
+    Graph graph;
+    graph.Load(utf16(resourcePath()) + L"Data/in.txt");
+    
+    cout << "Дейкстра из 0 в 15" << endl;
+    clock_t beg = clock();
+    graph.Dijekstra(graph[0], graph[15]);
+    clock_t end = clock();
+    cout << "Время выполнения: " << (end - beg) << " тиков" << endl << endl;
     
     graph.PrintHierarchy();
-}
-
-/*
-struct Vertex
-{
-    struct Edge
+    
+    
+    
+    sf::Clock clock;
+    window.setActive();
+    while (window.isOpen())
     {
-        Vertex* to{ nullptr };
-        double weight{ 0 };
-        bool isTo{ false };
-        bool isFrom{ false };
+        sf::Event event;
+        while (window.pollEvent(event))
+        {
+            switch (event.type)
+            {
+                case sf::Event::Closed:
+                    window.close();
+                    break;
+
+                case sf::Event::KeyPressed:
+                    switch (event.key.code)
+                    {
+                        case sf::Keyboard::Escape:
+                            window.close();
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+            
+                case sf::Event::Resized:
+                    window.setView(sf::View(sf::FloatRect(0, 0, event.size.width, event.size.height)));
+                    gs::width = event.size.width; gs::height = event.size.height;
+                    gs::scale = ((float)event.size.width/1280 > (float)event.size.height/800) ? (float)event.size.width/1280 : (float)event.size.height/800;
+                    system.Resize(event.size.width, event.size.height);
+                    break;
+                    
+                default:
+                    break;
+            }
+        }
         
-        Edge(Vertex* to, double weight, bool isTo = true, bool isFrom = true) : to(to), weight(weight), isTo(isTo), isFrom(isFrom) { }
-    };
-    
-    vector<Edge> edges;
-};
-
-
-int main()
-{
-    vector<Vertex> graph; // <- GRAPH!!!
-    
-    graph.emplace_back();
-    graph.emplace_back();
-    graph.emplace_back();
-    graph.emplace_back();
-    graph.emplace_back();
-    graph.emplace_back();
-    graph.emplace_back();
-    graph.emplace_back();
-    graph.emplace_back();
-    
-    graph[0].edges.emplace_back(&graph[1], 5, true, true);
-    graph[1].edges.emplace_back(&graph[0], 5, true, true);
-    
-    graph[0].edges.emplace_back(&graph[6], 12, false, true);
-    graph[6].edges.emplace_back(&graph[0], 12, true, false);
-    
-    for (auto& v : graph)
-    {
-        cout << "- Вершина " << &v << endl;
-        for (auto& e : v.edges)
-            cout << "---- " << e.to << " " << e.weight << " " << e.isTo << " " << e.isFrom << endl;
-        cout << endl;
+        system.Update(clock.restart());
+        
+        window.clear();
+        window.draw(text);
+        system.Draw(&window);
+        window.display();
     }
-}*/
+
+    system.Destroy();
+    return EXIT_SUCCESS;
+}

@@ -2,6 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "self:AlternativeTransport-MLaToA2018.xcodeproj">
+      location = "self:SFML-ios-test.xcodeproj">
    </FileRef>
 </Workspace>
