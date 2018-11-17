@@ -28,6 +28,10 @@ using namespace at;
 
 int main()
 {
+#ifdef _WIN32
+	std::system("chcp 1251");
+#endif
+
 #ifdef SFML_SYSTEM_IOS
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "AlternativeTransport-MLaToA2018", sf::Style::Default);
 #else

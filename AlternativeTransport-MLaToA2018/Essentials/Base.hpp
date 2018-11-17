@@ -17,5 +17,7 @@ std::wstring ParseUntil(std::wstring line, const char& until, unsigned int from)
 std::string utf8(const std::wstring& wstr);
 std::wstring utf16(const std::string& wstr);
 
+std::wstring GetCurrentWorkingDir();
+
 
 #endif /* Base_hpp */

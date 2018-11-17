@@ -37,7 +37,7 @@ std::string resourcePath(void)
 }
 std::wstring executablePath(void)
 {
-    return ns::base::GetCurrentWorkingDir();
+    return GetCurrentWorkingDir();
 }
 
 #endif
