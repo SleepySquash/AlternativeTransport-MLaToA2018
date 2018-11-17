@@ -23,6 +23,7 @@
 
 #include "Graph/Graph.hpp"
 #include "Components/EssentialComponents.hpp"
+#include "Components/GraphComponents.hpp"
 
 using namespace at;
 
@@ -32,13 +33,15 @@ int main()
 	std::system("chcp 1251");
 #endif
 
+    sf::ContextSettings settings;
+    settings.antialiasingLevel = 2;
 #ifdef SFML_SYSTEM_IOS
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "AlternativeTransport-MLaToA2018", sf::Style::Default);
 #else
     #ifdef SFML_SYSTEM_ANDROID
         sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "AlternativeTransport-MLaToA2018", sf::Style::Default);
     #else
-        sf::RenderWindow window(sf::VideoMode(sf::VideoMode::getDesktopMode().width >= 1280 ? 1280 : sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height >= 880 ? 800 : sf::VideoMode::getDesktopMode().height - 80), "AlternativeTransport-MLaToA2018");
+    sf::RenderWindow window(sf::VideoMode(sf::VideoMode::getDesktopMode().width >= 1280 ? 1280 : sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height >= 880 ? 800 : sf::VideoMode::getDesktopMode().height - 80), "AlternativeTransport-MLaToA2018", sf::Style::Default, settings);
     #endif
 #endif
     gs::width = window.getSize().x;
@@ -51,40 +54,7 @@ int main()
     if (!icon.loadFromFile(resourcePath() + "Data/Images/icon.png"))
         return EXIT_FAILURE;
     window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
-
-    sf::Text text;
-    text.setString("Hello, SFML!");
-    text.setCharacterSize(50);
-    if (fc::GetFont(L"sansation.ttf") != nullptr)
-        text.setFont(*fc::GetFont(L"sansation.ttf"));
-    text.setFillColor(sf::Color::White);
     
-    
-    EntitySystem system;
-    
-    ///----------------------------------------------------------
-    /// \brief Entity to hold novel and stuff it depends on
-    ///
-    /// Entity holds the novel itself in order to have some ierarchy of entities.
-    /// It also may hold some libraries etc that novel depends on.
-    ///
-    ///----------------------------------------------------------
-    Entity* Elizabeth = system.AddEntity();
-    {
-        //Elizabeth->AddComponent<ns::NovelComponents::Novel>("Novels/Bundle/scen.nsdat");
-    }
-    
-    ///----------------------------------------------------------
-    /// \brief Entity to hold essential components
-    ///
-    /// Entity holds components like always-on debug UI layer, system's components and other essential stuff.
-    /// It also may hold components like NovelComponent that runs the novel, cuz it has to be essential component.
-    ///
-    ///----------------------------------------------------------
-    Entity* Shimakaze = system.AddEntity();
-    {
-        Shimakaze->AddComponent<EssentialComponents::DebugComponent>("Update 0 build 1");
-    }
     
     
     
@@ -98,6 +68,31 @@ int main()
     cout << "Время выполнения: " << (end - beg) << " тиков" << endl << endl;
     
     graph.PrintHierarchy();
+    
+    
+    
+    
+    EntitySystem system;
+    
+    ///----------------------------------------------------------
+    /// \brief Entity to hold graph and map that depends on it
+    ///----------------------------------------------------------
+    Entity* Elizabeth = system.AddEntity();
+    {
+        Elizabeth->AddComponent<GraphComponents::GraphMap>(&graph);
+    }
+    
+    ///----------------------------------------------------------
+    /// \brief Entity to hold essential components
+    ///
+    /// Entity holds components like always-on debug UI layer, system's components and other essential stuff.
+    /// It also may hold components like NovelComponent that runs the novel, cuz it has to be essential component.
+    ///
+    ///----------------------------------------------------------
+    Entity* Shimakaze = system.AddEntity();
+    {
+        Shimakaze->AddComponent<EssentialComponents::DebugComponent>("Update 0 build 1");
+    }
     
     
     
@@ -132,6 +127,10 @@ int main()
                     system.Resize(event.size.width, event.size.height);
                     break;
                     
+                case sf::Event::MouseWheelScrolled:
+                    system.PollEvent(event);
+                    break;
+                    
                 default:
                     break;
             }
@@ -140,7 +139,6 @@ int main()
         system.Update(clock.restart());
         
         window.clear();
-        window.draw(text);
         system.Draw(&window);
         window.display();
     }

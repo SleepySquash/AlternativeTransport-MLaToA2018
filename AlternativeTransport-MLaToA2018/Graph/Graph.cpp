@@ -1,4 +1,4 @@
-﻿//
+//
 //  Graph.cpp
 //  AlternativeTransport-MLaToA2018
 //
@@ -60,8 +60,9 @@ namespace at
     #endif
         wif.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
         
-        if (wif.is_open())
+        if ((loaded = wif.is_open()))
         {
+            filePath = filename;
             std::wstring line;
             
             std::getline(wif, line);
@@ -92,25 +93,28 @@ namespace at
                             {
                                 from = std::atol(utf8(v1).c_str());
                                 std::wstring v2 = ParseUntil(line, ' ', pos);
-                                if (v2.length() != 0)
+                                if (v2.length() != 0 && from < size)
                                 {
                                     pos += v2.length() + 1;
                                     to = std::atol(utf8(v2).c_str());
                                     
-                                    std::wstring v3 = ParseUntil(line, ' ', pos);
-                                    pos += v3.length() + 1;
-                                    weight = std::atof(utf8(v3).c_str());
-                                    
-                                    std::wstring v4 = ParseUntil(line, ' ', pos);
-                                    pos += v4.length() + 1;
-                                    if (v4.length() != 0)
+                                    if (to < size)
                                     {
-                                        out = (v4 == L"1") ? true : false;
-                                        std::wstring v5 = ParseUntil(line, ' ', pos);
-                                        in = (v5 == L"1") ? true : false;
+                                        std::wstring v3 = ParseUntil(line, ' ', pos);
+                                        pos += v3.length() + 1;
+                                        weight = std::atof(utf8(v3).c_str());
+                                        
+                                        std::wstring v4 = ParseUntil(line, ' ', pos);
+                                        pos += v4.length() + 1;
+                                        if (v4.length() != 0)
+                                        {
+                                            out = (v4 == L"1") ? true : false;
+                                            std::wstring v5 = ParseUntil(line, ' ', pos);
+                                            in = (v5 == L"1") ? true : false;
+                                        }
+                                        
+                                        vertexes[from]->Sync(vertexes[to], weight, out, in);
                                     }
-                                    
-                                    vertexes[from]->Sync(vertexes[to], weight, out, in);
                                 }
                             }
                         }

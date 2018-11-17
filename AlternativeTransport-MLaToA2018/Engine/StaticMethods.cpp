@@ -65,19 +65,19 @@ namespace at
     
     
     
-    sf::RenderWindow* GlobalSettings::window = nullptr;
+    sf::RenderWindow* gs::window = nullptr;
     
-    unsigned int GlobalSettings::width = 0;
-    unsigned int GlobalSettings::height = 0;
-    float GlobalSettings::scale = 1.f;
+    unsigned int gs::width = 0;
+    unsigned int gs::height = 0;
+    float gs::scale = 1.f;
     
 #ifdef _WIN32
-    int GlobalSettings::windowPositionOffset = IsWindows8OrGreater() ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
+    int gs::windowPositionOffset = IsWindows8OrGreater() ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
 #else
-    int GlobalSettings::windowPositionOffset = 0;
+    int gs::windowPositionOffset = 0;
 #endif
     
-    bool GlobalSettings::isVerticalSyncEnabled = true;
-    int GlobalSettings::framerateLimit = 120;
-    int GlobalSettings::framerateNoFocus = 30;
+    bool gs::isVerticalSyncEnabled = true;
+    int gs::framerateLimit = 120;
+    int gs::framerateNoFocus = 30;
 }

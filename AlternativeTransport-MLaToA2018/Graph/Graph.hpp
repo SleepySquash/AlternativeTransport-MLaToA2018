@@ -1,4 +1,4 @@
-﻿//
+//
 //  Graph.hpp
 //  AlternativeTransport-MLaToA2018
 //
@@ -22,6 +22,10 @@ using std::vector;
 
 namespace at
 {
+    namespace GraphComponents
+    {
+        struct VertexInfo;
+    }
     struct Vertex;
     struct Edge
     {
@@ -36,6 +40,7 @@ namespace at
     struct Vertex
     {
         vector<Edge*> edges; // max amount of edges = 18.446.744.073.709.551.615 (~2 * 10^19)
+        GraphComponents::VertexInfo* vertexinfo{ nullptr };
         double dijekstraWeight{ std::numeric_limits<double>::infinity() };
         bool dijekstraOut{ false };
         
@@ -53,6 +58,9 @@ namespace at
     struct Graph
     {
         vector<Vertex*> vertexes; // max amount of vertexes = 18.446.744.073.709.551.615 (~2 * 10^19)
+        
+        std::wstring filePath{ L"" };
+        bool loaded{ false };
         
         ~Graph();
         void Push(Vertex* v);
