@@ -28,7 +28,7 @@ using namespace at;
 
 int main()
 {
-#ifdef _WIN32
+#ifdef _WIN32 
 	std::system("chcp 1251");
 #endif
 
