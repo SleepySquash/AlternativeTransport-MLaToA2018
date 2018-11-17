@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Essentials">
+      <UniqueIdentifier>{cca2c034-d897-471a-8fd4-632f9a4226d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{45d086b3-a245-4934-aa5c-32d2b89240b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graph">
+      <UniqueIdentifier>{ea011530-bb67-4727-b438-b07ae93014a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components">
+      <UniqueIdentifier>{a05111e9-621f-4620-98a9-241336302fe9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Graph\Graph.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="Essentials\Base.cpp">
+      <Filter>Essentials</Filter>
+    </ClCompile>
+    <ClCompile Include="Essentials\ResourcePath.cpp">
+      <Filter>Essentials</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\StaticMethods.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\EntitySystem.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Components\EssentialComponents.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Graph\Graph.hpp">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="Essentials\versionhelpers.h">
+      <Filter>Essentials</Filter>
+    </ClInclude>
+    <ClInclude Include="Essentials\Base.hpp">
+      <Filter>Essentials</Filter>
+    </ClInclude>
+    <ClInclude Include="Essentials\ResourcePath.hpp">
+      <Filter>Essentials</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\EntitySystem.hpp">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\StaticMethods.hpp">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="Components\EssentialComponents.hpp">
+      <Filter>Components</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Essentials\ResourcePath.mm">
+      <Filter>Essentials</Filter>
+    </None>
+  </ItemGroup>
+</Project>

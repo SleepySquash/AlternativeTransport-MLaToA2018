@@ -25,7 +25,7 @@ namespace at
             buildText.setFont(*fc::GetFont(L"sansation.ttf"));
             fontLoaded = (buildText.getFont() != nullptr);
             
-            projectText.setString("AlternativeTransfort-MLaToA by SlSq");
+            projectText.setString("AlternativeTransport-MLaToA by SlSq");
             projectText.setFillColor(sf::Color::White);
             projectText.setOutlineColor(sf::Color::Black);
             projectText.setOutlineThickness(1.f);
