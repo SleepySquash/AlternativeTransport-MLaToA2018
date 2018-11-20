@@ -34,14 +34,24 @@ namespace at
             float x{ 0 }, y{ 0 };
             Vertex* vertex{ nullptr };
             bool visible{ false };
+            bool highlighted{ false };
             VertexInfo(Vertex* vertex) : vertex(vertex) { }
             VertexInfo(double x, double y, Vertex* vertex) : x(x), y(y), vertex(vertex) { }
         };
         class GraphMap : public Component
         {
         private:
-            vector<VertexInfo*> vertexes;
             Graph* graph{ nullptr };
+            VertexInfo* vertexFrom{ nullptr };
+            
+            sf::Text text;
+            sf::Text info;
+            int info_yy{ 0 }, info_xx{ 0 };
+            bool fontLoaded{ false };
+            
+            sf::Image image;
+            sf::Texture texture;
+            sf::Sprite sprite;
             
             sf::CircleShape circle;
             sf::Vertex line[2] =
@@ -52,7 +62,11 @@ namespace at
             
             bool controlPressed{ false };
             
+            float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
+            
         public:
+            vector<VertexInfo*> vertexes;
+            
             float pointRadius{ 10 }, scale { 1.f };
             float x{ 0 }, y{ 0 };
             

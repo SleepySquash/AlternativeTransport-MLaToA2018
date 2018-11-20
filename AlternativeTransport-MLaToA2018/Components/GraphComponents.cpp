@@ -24,6 +24,24 @@ namespace at
             circle.setFillColor(sf::Color::White);
             circle.setOutlineColor(sf::Color::Black);
             circle.setOutlineThickness(gs::scale);
+            
+            if ((fontLoaded = (fc::GetFont(L"Arial.ttf") != nullptr)))
+                text.setFont(*fc::GetFont(L"Arial.ttf"));
+            text.setFillColor(sf::Color::White);
+            text.setOutlineColor(sf::Color::Black);
+            text.setString(L"Карта");
+            
+            if ((fontLoaded = (fc::GetFont(L"Arial.ttf") != nullptr)))
+                info.setFont(*fc::GetFont(L"Arial.ttf"));
+            info.setFillColor(sf::Color::White);
+            info.setOutlineColor(sf::Color::Black);
+            
+            if (image.loadFromFile(resourcePath() + "Data/Images/map1.jpg"))
+            {
+                texture.loadFromImage(image);
+                texture.setSmooth(true);
+                sprite.setTexture(texture);
+            }
         }
         void GraphMap::Destroy()
         {
@@ -36,48 +54,159 @@ namespace at
         }
         void GraphMap::Draw(sf::RenderWindow* window)
         {
+            window->draw(sprite);
+            
+            bool wasHighlighted{ false };
             for (auto v : vertexes)
             {
                 if (v->visible)
                 {
-                    float scaledRadius = circle.getRadius(); //* gs::scale*scale;
-                    line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale + scaledRadius, (y + v->y)*gs::scale*scale + scaledRadius};
-                    for (auto e : v->vertex->edges)
+                    //TODO: if the vertex fits the screen
                     {
-                        if (e->out && e->to->vertexinfo->visible)
+                        float scaledRadius = circle.getRadius(); //* gs::scale*scale;
+                        line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale + scaledRadius, (y + v->y)*gs::scale*scale + scaledRadius};
+                        for (auto e : v->vertex->edges)
                         {
-                            line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale + scaledRadius,
-                                                             (y + e->to->vertexinfo->y)*gs::scale*scale + scaledRadius };
-                            window->draw(line, 2, sf::Lines);
+                            if (e->out && e->to->vertexinfo->visible)
+                            {
+                                line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale + scaledRadius,
+                                                                 (y + e->to->vertexinfo->y)*gs::scale*scale + scaledRadius };
+                                window->draw(line, 2, sf::Lines);
+                            }
                         }
+                        circle.setPosition((x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale);
+                        
+                        if (v->highlighted)
+                        {
+                            wasHighlighted = true;
+                            circle.setFillColor(sf::Color::Magenta);
+                        }
+                        else if (wasHighlighted)
+                        {
+                            wasHighlighted = false;
+                            circle.setFillColor(sf::Color::White);
+                        }
+                            
+                        window->draw(circle);
                     }
-                    circle.setPosition((x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale);
-                    window->draw(circle);
                 }
+            }
+            if (fontLoaded)
+            {
+                window->draw(text);
+                
+                int yy = info_yy;
+                sf::String string;
+                
+                string = L"Вершин: "; string += std::to_wstring(vertexes.size());
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                string = L"Масштаб: "; string += std::to_wstring(scale);
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += info.getLocalBounds().height + 2*gs::scale;
             }
         }
         void GraphMap::Resize(unsigned int width, unsigned int height)
         {
             circle.setRadius(pointRadius * gs::scale*scale);
             circle.setOutlineThickness(gs::scale*scale);
+            
+            text.setCharacterSize(30 * gs::scale);
+            text.setOutlineThickness(gs::scale);
+            text.setPosition(gs::width - text.getLocalBounds().width - gs::width/10, gs::height/10);
+            
+            info.setCharacterSize(20 * gs::scale);
+            info.setOutlineThickness(gs::scale);
+            info_yy = gs::height/10 + text.getLocalBounds().height + 10*gs::scale;
+            //info_xx = gs::width - text.getLocalBounds().width - gs::width/10 - 10*gs::scale;
+            info.setPosition(gs::width - text.getLocalBounds().width - gs::width/10 - 10*gs::scale, info_yy);
+            
+            sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
+            sprite.setScale(gs::scale*scale, gs::scale*scale);
         }
         void GraphMap::PollEvent(sf::Event& event)
         {
-            if (event.type == sf::Event::MouseWheelScrolled)
+            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+            {
+                if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+                {
+                    Vertex* vertex = new Vertex();
+                    VertexInfo* vinfo = new VertexInfo(vertex);
+                    vertex->vertexinfo = vinfo;
+                    vinfo->x = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
+                    vinfo->y = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
+                    vinfo->visible = true;
+                    
+                    //vertex->Link(graph->vertexes[0], 10);
+                    
+                    graph->vertexes.push_back(vertex);
+                    vertexes.push_back(vinfo);
+                }
+                else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+                {
+                    bool found{ false };
+                    float mx = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
+                    float my = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
+                    cout << mx << " " << my << endl;
+                    for (int i = 0; i < vertexes.size() && !found; ++i)
+                        if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
+                            my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
+                        {
+                            if (vertexFrom == nullptr)
+                            {
+                                vertexFrom = vertexes[i];
+                                vertexFrom->highlighted = true;
+                            }
+                            else if (vertexFrom == vertexes[i])
+                            {
+                                vertexFrom->highlighted = false;
+                                vertexFrom = nullptr;
+                            }
+                            else
+                            {
+                                vertexes[i]->vertex->Link(vertexFrom->vertex, 1);
+                                vertexFrom->highlighted = false;
+                                vertexFrom = nullptr;
+                            }
+                            
+                            found = true;
+                        }
+                    if (!found)
+                    {
+                        if (vertexFrom != nullptr)
+                            vertexFrom->highlighted = false;
+                        vertexFrom = nullptr;
+                    }
+                }
+            }
+            else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::R)
+            {
+                x = (rightBorderX - leftBorderX) / (scale * 2);
+                y = (bottomBorderY - topBorderY) / (scale * 2);
+            }
+            else if (event.type == sf::Event::MouseWheelScrolled)
             {
                 if (event.mouseWheelScroll.delta != 0)
                 {
                     if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
                     {
                         if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LControl))
-                            y += 3/scale * event.mouseWheelScroll.delta;
+                            y += 6/scale * event.mouseWheelScroll.delta;
                         else
                         {
-                            //float scalePrev = scale;
+                            float scalePrev = scale;
                             
-                            scale += 0.05 * event.mouseWheelScroll.delta;
+                            scale += (scale < 0.6) ? 0.06*scale * event.mouseWheelScroll.delta : 0.05 * event.mouseWheelScroll.delta;
+                            if (scale < 0.05) scale = 0.05;
                             circle.setRadius(pointRadius * gs::scale*scale);
                             circle.setOutlineThickness(gs::scale*scale);
+                            
+                            x -= (gs::width/(gs::scale*scale) - gs::width/(gs::scale*scale) * (scalePrev/scale))/2;
+                            y -= (gs::height/(gs::scale*scale) - gs::height/(gs::scale*scale) * (scalePrev/scale))/2;
+                            sprite.setScale(gs::scale*scale, gs::scale*scale);
                             
                             //x += (gs::width/2 * (scalePrev - scale));
                             //y += (gs::height/2 * (scalePrev - scale));
@@ -86,7 +215,9 @@ namespace at
                         }
                     }
                     else if (event.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel)
-                        x += 3/scale * event.mouseWheelScroll.delta;
+                        x += 6/scale * event.mouseWheelScroll.delta;
+                    
+                    sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
                 }
             }
         }
@@ -143,12 +274,20 @@ namespace at
                                             {
                                                 pos += xpos.length() + 1;
                                                 x = std::atof(utf8(xpos).c_str());
+                                                if (x < leftBorderX)
+                                                    leftBorderX = x;
+                                                if (x > rightBorderX)
+                                                    rightBorderX = x;
                                                 
                                                 std::wstring ypos = ParseUntil(line, ' ', pos);
                                                 if (ypos.length() != 0)
                                                 {
                                                     pos += ypos.length() + 1;
                                                     y = std::atof(utf8(ypos).c_str());
+                                                    if (y < topBorderY)
+                                                        topBorderY = y;
+                                                    if (y > bottomBorderY)
+                                                        bottomBorderY = y;
                                                     
                                                     std::wstring zpos = ParseUntil(line, ' ', pos);
                                                     if (zpos.length() != 0)

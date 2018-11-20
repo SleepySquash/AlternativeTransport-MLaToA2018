@@ -22,7 +22,7 @@ namespace at
             buildText.setOutlineColor(sf::Color::Black);
             buildText.setOutlineThickness(1.f);
             buildText.setCharacterSize(15);
-            buildText.setFont(*fc::GetFont(L"sansation.ttf"));
+            buildText.setFont(*fc::GetFont(L"Arial.ttf"));
             fontLoaded = (buildText.getFont() != nullptr);
             
             projectText.setString("AlternativeTransport-MLaToA by SlSq");
@@ -30,14 +30,14 @@ namespace at
             projectText.setOutlineColor(sf::Color::Black);
             projectText.setOutlineThickness(1.f);
             projectText.setCharacterSize(23);
-            projectText.setFont(*fc::GetFont(L"sansation.ttf"));
+            projectText.setFont(*fc::GetFont(L"Arial.ttf"));
             
             performanceText.setString("Calculating...");
             performanceText.setFillColor(sf::Color::White);
             performanceText.setOutlineColor(sf::Color::Black);
             performanceText.setOutlineThickness(1.f);
             performanceText.setCharacterSize(15);
-            performanceText.setFont(*fc::GetFont(L"sansation.ttf"));
+            performanceText.setFont(*fc::GetFont(L"Arial.ttf"));
         }
         void DebugComponent::Update(const sf::Time& elapsedTime)
         {

@@ -34,7 +34,7 @@ int main()
 #endif
 
     sf::ContextSettings settings;
-    settings.antialiasingLevel = 2;
+    settings.antialiasingLevel = 0;
 #ifdef SFML_SYSTEM_IOS
     sf::RenderWindow window(sf::VideoMode::getDesktopMode(), "AlternativeTransport-MLaToA2018", sf::Style::Default);
 #else
@@ -79,7 +79,9 @@ int main()
     ///----------------------------------------------------------
     Entity* Elizabeth = system.AddEntity();
     {
-        Elizabeth->AddComponent<GraphComponents::GraphMap>(&graph);
+        auto graphmap = Elizabeth->AddComponent<GraphComponents::GraphMap>(&graph);
+        graphmap->vertexes[0]->highlighted = true;
+        graphmap->vertexes[15]->highlighted = true;
     }
     
     ///----------------------------------------------------------
@@ -109,11 +111,26 @@ int main()
                     window.close();
                     break;
 
+                case sf::Event::MouseButtonPressed:
+                    system.PollEvent(event);
+                    break;
+                    
                 case sf::Event::KeyPressed:
                     switch (event.key.code)
                     {
                         case sf::Keyboard::Escape:
                             window.close();
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                    
+                case sf::Event::KeyReleased:
+                    switch (event.key.code)
+                    {
+                        case sf::Keyboard::R:
+                            system.PollEvent(event);
                             break;
                         default:
                             break;
