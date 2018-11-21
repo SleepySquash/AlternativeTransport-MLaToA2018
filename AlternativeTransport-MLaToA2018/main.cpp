@@ -61,13 +61,10 @@ int main()
     Graph graph;
     graph.Load(utf16(resourcePath()) + L"Data/in.txt");
     
-    cout << "Дейкстра из 0 в 15" << endl;
     clock_t beg = clock();
-    graph.Dijekstra(graph[0], graph[15]);
+    cout << "s-t расстояние: " << graph.Dijekstra(graph[0], graph[15]) << endl;
     clock_t end = clock();
     cout << "Время выполнения: " << (end - beg) << " тиков" << endl << endl;
-    
-    graph.PrintHierarchy();
     
     
     
@@ -78,11 +75,13 @@ int main()
     /// \brief Entity to hold graph and map that depends on it
     ///----------------------------------------------------------
     Entity* Elizabeth = system.AddEntity();
+    GraphComponents::GraphMap* graphmap;
     {
-        auto graphmap = Elizabeth->AddComponent<GraphComponents::GraphMap>(&graph);
+        graphmap = Elizabeth->AddComponent<GraphComponents::GraphMap>(&graph);
         graphmap->vertexes[0]->highlighted = true;
         graphmap->vertexes[15]->highlighted = true;
     }
+    //graphmap->Save(utf16(resourcePath()) + L"Data/out.txt");
     
     ///----------------------------------------------------------
     /// \brief Entity to hold essential components
@@ -119,7 +118,7 @@ int main()
                     switch (event.key.code)
                     {
                         case sf::Keyboard::Escape:
-                            window.close();
+                            //window.close();
                             break;
                         default:
                             break;
@@ -131,6 +130,16 @@ int main()
                     {
                         case sf::Keyboard::R:
                             system.PollEvent(event);
+                            break;
+                        case sf::Keyboard::C:
+                            graphmap->Clear();
+                            break;
+                        case sf::Keyboard::L:
+                            graphmap->Clear();
+                            graphmap->Load(utf16(resourcePath()) + L"Data/out.txt");
+                            break;
+                        case sf::Keyboard::S:
+                            graphmap->Save(utf16(resourcePath()) + L"Data/out.txt");
                             break;
                         default:
                             break;

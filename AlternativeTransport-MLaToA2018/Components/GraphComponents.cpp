@@ -42,6 +42,8 @@ namespace at
                 texture.setSmooth(true);
                 sprite.setTexture(texture);
             }
+            
+            panelShape.setFillColor(sf::Color(0, 0, 0, 160));
         }
         void GraphMap::Destroy()
         {
@@ -66,23 +68,18 @@ namespace at
                         float scaledRadius = circle.getRadius(); //* gs::scale*scale;
                         line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale + scaledRadius, (y + v->y)*gs::scale*scale + scaledRadius};
                         for (auto e : v->vertex->edges)
-                        {
                             if (e->out && e->to->vertexinfo->visible)
                             {
                                 line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale + scaledRadius,
                                                                  (y + e->to->vertexinfo->y)*gs::scale*scale + scaledRadius };
                                 window->draw(line, 2, sf::Lines);
                             }
-                        }
                         circle.setPosition((x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale);
                         
-                        if (v->highlighted)
-                        {
+                        if (v->highlighted) {
                             wasHighlighted = true;
                             circle.setFillColor(sf::Color::Magenta);
-                        }
-                        else if (wasHighlighted)
-                        {
+                        } else if (wasHighlighted) {
                             wasHighlighted = false;
                             circle.setFillColor(sf::Color::White);
                         }
@@ -91,8 +88,12 @@ namespace at
                     }
                 }
             }
+            if (wasHighlighted)
+                circle.setFillColor(sf::Color::White);
             if (fontLoaded)
             {
+                if (panelVisible)
+                    window->draw(panelShape);
                 window->draw(text);
                 
                 int yy = info_yy;
@@ -107,6 +108,11 @@ namespace at
                 info.setPosition(info.getPosition().x, yy);
                 info.setString(string); window->draw(info);
                 yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                string = L"Дейкстра: "; string += std::to_wstring(dijekstraWeight);
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += info.getLocalBounds().height + 2*gs::scale;
             }
         }
         void GraphMap::Resize(unsigned int width, unsigned int height)
@@ -116,16 +122,21 @@ namespace at
             
             text.setCharacterSize(30 * gs::scale);
             text.setOutlineThickness(gs::scale);
-            text.setPosition(gs::width - text.getLocalBounds().width - gs::width/10, gs::height/10);
             
             info.setCharacterSize(20 * gs::scale);
             info.setOutlineThickness(gs::scale);
             info_yy = gs::height/10 + text.getLocalBounds().height + 10*gs::scale;
             //info_xx = gs::width - text.getLocalBounds().width - gs::width/10 - 10*gs::scale;
-            info.setPosition(gs::width - text.getLocalBounds().width - gs::width/10 - 10*gs::scale, info_yy);
+            info.setPosition(gs::width - text.getLocalBounds().width - gs::width/10 - 20*gs::scale, info_yy);
             
             sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
-            sprite.setScale(gs::scale*scale, gs::scale*scale);
+            sprite.setScale(gs::scale*scale*imageScale, gs::scale*scale*imageScale);
+            
+            float posx = gs::width - text.getLocalBounds().width - gs::width/10 - 2*20*gs::scale;
+            text.setPosition((float)(gs::width - (text.getLocalBounds().width + gs::width/10 + 2*20*gs::scale)/2 - text.getLocalBounds().width/2), gs::height/14);
+            
+            panelShape.setSize({(float)(gs::width - posx), (float)(gs::height)});
+            panelShape.setPosition(posx, 0);
         }
         void GraphMap::PollEvent(sf::Event& event)
         {
@@ -140,7 +151,7 @@ namespace at
                     vinfo->y = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
                     vinfo->visible = true;
                     
-                    //vertex->Link(graph->vertexes[0], 10);
+                    //vertex->Sync(graph->vertexes[0], 10);
                     
                     graph->vertexes.push_back(vertex);
                     vertexes.push_back(vinfo);
@@ -150,35 +161,86 @@ namespace at
                     bool found{ false };
                     float mx = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
                     float my = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
-                    cout << mx << " " << my << endl;
-                    for (int i = 0; i < vertexes.size() && !found; ++i)
+                    for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
+                    {
                         if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
                             my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
                         {
-                            if (vertexFrom == nullptr)
-                            {
-                                vertexFrom = vertexes[i];
-                                vertexFrom->highlighted = true;
+                            if (source == nullptr) {
+                                source = vertexes[i];
+                                source->highlighted = true;
+                            } else if (source == vertexes[i]) {
+                                source->highlighted = false;
+                                source = nullptr;
+                            } else {
+                                vertexes[i]->vertex->Sync(source->vertex,
+                                                          sqrt(pow(vertexes[i]->x - source->x, 2) + pow(vertexes[i]->y - source->y, 2)));
+                                source->highlighted = false;
+                                source = nullptr;
                             }
-                            else if (vertexFrom == vertexes[i])
-                            {
-                                vertexFrom->highlighted = false;
-                                vertexFrom = nullptr;
-                            }
-                            else
-                            {
-                                vertexes[i]->vertex->Link(vertexFrom->vertex, 1);
-                                vertexFrom->highlighted = false;
-                                vertexFrom = nullptr;
-                            }
-                            
                             found = true;
+                            event = sf::Event();
                         }
+                        if (i == 0) break;
+                    }
                     if (!found)
                     {
-                        if (vertexFrom != nullptr)
-                            vertexFrom->highlighted = false;
-                        vertexFrom = nullptr;
+                        if (source != nullptr)
+                            source->highlighted = false;
+                        source = nullptr;
+                    }
+                }
+                else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::S))
+                {
+                    bool found{ false };
+                    float mx = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
+                    float my = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
+                    for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
+                    {
+                        if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
+                            my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
+                        {
+                            dijekstraWeight = std::numeric_limits<double>::infinity();
+                            if (source == vertexes[i]) {
+                                source->highlighted = false;
+                                source = nullptr;
+                            } else if (source == nullptr) {
+                                source = vertexes[i];
+                                source->highlighted = true;
+                            } else {
+                                dijekstraWeight = graph->Dijekstra(source->vertex, vertexes[i]->vertex);
+                                source->highlighted = false;
+                                source = nullptr;
+                            }
+                            found = true;
+                            event = sf::Event();
+                        }
+                        if (i == 0) break;
+                    }
+                    if (!found)
+                    {
+                        if (source != nullptr)
+                            source->highlighted = false;
+                        source = nullptr;
+                    }
+                }
+                else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LAlt))
+                {
+                    float mx = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
+                    float my = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
+                    for (unsigned long i = vertexes.size() - 1; i >= 0; --i)
+                    {
+                        if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
+                            my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
+                        {
+                            graph->Remove(vertexes[i]->vertex);
+                            delete vertexes[i];
+                            vertexes.erase(vertexes.begin() + i);
+                            
+                            event = sf::Event();
+                            break;
+                        }
+                        if (i == 0) break;
                     }
                 }
             }
@@ -206,12 +268,7 @@ namespace at
                             
                             x -= (gs::width/(gs::scale*scale) - gs::width/(gs::scale*scale) * (scalePrev/scale))/2;
                             y -= (gs::height/(gs::scale*scale) - gs::height/(gs::scale*scale) * (scalePrev/scale))/2;
-                            sprite.setScale(gs::scale*scale, gs::scale*scale);
-                            
-                            //x += (gs::width/2 * (scalePrev - scale));
-                            //y += (gs::height/2 * (scalePrev - scale));
-                            //x -= ((float)gs::width - (float)gs::width * (scalePrev/scale))/2;
-                            //y -= ((float)gs::height - (float)gs::height * (scalePrev/scale))/2;
+                            sprite.setScale(gs::scale*scale*imageScale, gs::scale*scale*imageScale);
                         }
                     }
                     else if (event.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel)
@@ -294,7 +351,7 @@ namespace at
                                                     {
                                                         if (zpos[0] == L'"')
                                                         {
-                                                            
+                                                            // TODO: Label
                                                         }
                                                         else
                                                         {
@@ -318,6 +375,44 @@ namespace at
                     }
                 }
             }
+        }
+        void GraphMap::Load(const std::wstring& filename)
+        {
+            if (!graph->loaded)
+                graph->Load(filename);
+            
+            if (graph->loaded)
+                Load();
+        }
+        void GraphMap::Save(const std::wstring& filename)
+        {
+            if (graph != nullptr)
+            {
+                graph->Save(filename);
+                std::wofstream wof;
+#ifdef _WIN32
+                wof.open(filename, std::ios_base::app);
+#else
+                wof.open(utf8(filename), std::ios_base::app);
+#endif
+                wof.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
+                
+                if (wof.is_open())
+                {
+                    wof << endl;
+                    for (unsigned long i = 0; i < vertexes.size(); ++i)
+                        if (vertexes[i]->visible)
+                            wof << L'm' << i << L' ' << vertexes[i]->x << L' ' << vertexes[i]->y << endl;
+                }
+                wof.close();
+            }
+        }
+        void GraphMap::Clear()
+        {
+            if (graph != nullptr && graph->loaded)
+                graph->Clear();
+            for (int i = 0; i < vertexes.size(); ++i) { delete vertexes[i]; vertexes[i] = nullptr; }
+            vertexes.clear();
         }
         
     }

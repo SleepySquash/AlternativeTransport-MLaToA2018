@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <algorithm>
 
 #include "../Essentials/Base.hpp"
 
@@ -34,7 +35,12 @@ namespace at
         bool out{ false };
         bool in{ false };
         
+        bool savingCompleted{ false };
+        
         Edge(Vertex* to, double weight, bool out = true, bool in = true) : to(to), weight(weight), out(out), in(in) { }
+        
+        friend class Vertex;
+        friend class Graph;
     };
 
     struct Vertex
@@ -53,6 +59,9 @@ namespace at
         inline std::vector<Edge*>::const_iterator cbegin() const noexcept { return edges.cbegin(); }
         inline std::vector<Edge*>::iterator end() noexcept { return edges.end(); }
         inline std::vector<Edge*>::const_iterator cend() const noexcept { return edges.cend(); }
+        
+        friend class Edge;
+        friend class Graph;
     };
 
     struct Graph
@@ -67,14 +76,20 @@ namespace at
         Vertex* operator[](int i);
         unsigned long size();
         void PrintHierarchy();
+        void Remove(Vertex* vertex);
+        void Remove(unsigned long index);
         void Load(const std::wstring& filename);
         void Save(const std::wstring& filename);
-        void Dijekstra(Vertex* s, Vertex* t);
+        void Clear();
+        double Dijekstra(Vertex* s, Vertex* t);
         
         inline std::vector<Vertex*>::iterator begin() noexcept { return vertexes.begin(); }
         inline std::vector<Vertex*>::const_iterator cbegin() const noexcept { return vertexes.cbegin(); }
         inline std::vector<Vertex*>::iterator end() noexcept { return vertexes.end(); }
         inline std::vector<Vertex*>::const_iterator cend() const noexcept { return vertexes.cend(); }
+        
+        friend class Edge;
+        friend class Vertex;
     };
 
 

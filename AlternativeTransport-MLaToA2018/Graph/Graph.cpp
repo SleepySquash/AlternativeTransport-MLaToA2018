@@ -50,6 +50,31 @@ namespace at
             cout << endl;
         }
     }
+    void Graph::Remove(Vertex* vertex)
+    {
+        if (vertexes.size() != 0)
+            for (int i = 0; i < vertexes.size(); ++i)
+                if (vertexes[i] == vertex)
+                {
+                    Remove(i);
+                    break;
+                }
+    }
+    void Graph::Remove(unsigned long index)
+    {
+        if (index >= 0 && index < vertexes.size())
+        {
+            for (auto e : vertexes[index]->edges)
+                for (unsigned long j = 0; j < e->to->edges.size(); ++j)
+                    if (e->to->edges[j]->to == vertexes[index])
+                    {
+                        e->to->edges.erase(e->to->edges.begin() + j);
+                        //break;
+                    }
+            delete vertexes[index];
+            vertexes.erase(vertexes.begin() + index);
+        }
+    }
     void Graph::Load(const std::wstring& filename)
     {
         std::wifstream wif;
@@ -78,7 +103,7 @@ namespace at
                     if (line.length() != 0)
                     {
                         unsigned int pos = 0;
-                        if (line[0] != L'v') // it'll be info related to MAP, like x-y-z pos etc.
+                        if (line[0] != L'v' && line[0] != L'm') // it'll be info related to MAP, like x-y-z pos etc.
                         {
                             std::wstring v1 = ParseUntil(line, '-', pos);
                             pos += v1.length() + 1;
@@ -125,10 +150,55 @@ namespace at
     }
     void Graph::Save(const std::wstring& filename)
     {
-        // TODO
+        std::wofstream wof;
+#ifdef _WIN32
+        wof.open(filename);
+#else
+        wof.open(utf8(filename));
+#endif
+        wof.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
+        
+        if ((loaded = wof.is_open()))
+        {
+            for (auto v : vertexes)
+                for (auto e : v->edges)
+                    e->savingCompleted = false;
+            
+            wof << vertexes.size() << endl;
+            for (unsigned long i = 0; i < vertexes.size(); ++i)
+            {
+                if (vertexes[i]->edges.size() != 0)
+                    for (unsigned long j = 0; j < vertexes.size(); ++j)
+                    {
+                        Edge* edge = vertexes[i]->Connection(vertexes[j]);
+                        if (edge != nullptr && !edge->savingCompleted && edge->weight > 0)
+                        {
+                            wof << i << L'-' << j << L' ' << edge->weight;
+                            if (!edge->out || !edge->in)
+                                wof << " " << edge->out << " " << edge->in;
+                            wof << endl;
+                            
+                            Edge* another = vertexes[j]->Connection(vertexes[i]);
+                            edge->savingCompleted = true;
+                            another->savingCompleted = true;
+                        }
+                    }
+            }
+        }
+        wof.close();
     }
-    void Graph::Dijekstra(Vertex* s, Vertex* t)
+    void Graph::Clear()
     {
+        for (int i = 0; i < vertexes.size(); ++i) { delete vertexes[i]; vertexes[i] = nullptr; }
+        vertexes.clear();
+        loaded = false;
+        filePath = L"";
+    }
+    double Graph::Dijekstra(Vertex* s, Vertex* t)
+    {
+        for (auto v : vertexes) {
+            v->dijekstraOut = false;
+            v->dijekstraWeight = std::numeric_limits<double>::infinity();}
         vector<Vertex*> stack;
         s->dijekstraWeight = 0;
         stack.push_back(s);
@@ -160,6 +230,7 @@ namespace at
             // TODO: прекращение работы Дейкстры, если уже нашли мин. расстояние до (t)arget
             //       if (current == s) done = true; ?
         }
-        cout << "s-t расстояние: " << t->dijekstraWeight << endl;
+        
+        return t->dijekstraWeight;
     }
 }

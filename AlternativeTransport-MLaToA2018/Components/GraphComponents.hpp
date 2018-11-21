@@ -41,17 +41,20 @@ namespace at
         class GraphMap : public Component
         {
         private:
-            Graph* graph{ nullptr };
-            VertexInfo* vertexFrom{ nullptr };
+            VertexInfo* source{ nullptr };
             
             sf::Text text;
             sf::Text info;
             int info_yy{ 0 }, info_xx{ 0 };
             bool fontLoaded{ false };
             
+            sf::RectangleShape panelShape;
+            bool panelVisible{ true };
+            
             sf::Image image;
             sf::Texture texture;
             sf::Sprite sprite;
+            float imageScale = 1.f;
             
             sf::CircleShape circle;
             sf::Vertex line[2] =
@@ -62,12 +65,14 @@ namespace at
             
             bool controlPressed{ false };
             
+            double dijekstraWeight{ std::numeric_limits<double>::infinity() };
             float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
             
         public:
+            Graph* graph{ nullptr };
             vector<VertexInfo*> vertexes;
             
-            float pointRadius{ 10 }, scale { 1.f };
+            float pointRadius{ 5 }, scale { 1.f };
             float x{ 0 }, y{ 0 };
             
             GraphMap(Graph* graph);
@@ -78,6 +83,9 @@ namespace at
             void Resize(unsigned int width, unsigned int height) override;
             void PollEvent(sf::Event& event) override;
             void Load();
+            void Load(const std::wstring& filename);
+            void Save(const std::wstring& filename);
+            void Clear();
         };
     }
 }
