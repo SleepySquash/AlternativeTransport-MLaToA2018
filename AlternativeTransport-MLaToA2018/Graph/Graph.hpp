@@ -47,8 +47,9 @@ namespace at
     {
         vector<Edge*> edges; // max amount of edges = 18.446.744.073.709.551.615 (~2 * 10^19)
         GraphComponents::VertexInfo* vertexinfo{ nullptr };
-        double dijekstraWeight{ std::numeric_limits<double>::infinity() };
-        bool dijekstraOut{ false };
+        double dijkstraWeight{ std::numeric_limits<double>::infinity() };
+        Vertex* dijkstraPrevious{ nullptr };
+        bool dijkstraOut{ false };
         
         ~Vertex();
         void Link(Vertex* to, double weight, bool out = true, bool in = true);
@@ -67,6 +68,7 @@ namespace at
     struct Graph
     {
         vector<Vertex*> vertexes; // max amount of vertexes = 18.446.744.073.709.551.615 (~2 * 10^19)
+        vector<Vertex*> dijkstraShortestPath;
         
         std::wstring filePath{ L"" };
         bool loaded{ false };
@@ -81,7 +83,7 @@ namespace at
         void Load(const std::wstring& filename);
         void Save(const std::wstring& filename);
         void Clear();
-        double Dijekstra(Vertex* s, Vertex* t);
+        double Dijkstra(Vertex* s, Vertex* t);
         
         inline std::vector<Vertex*>::iterator begin() noexcept { return vertexes.begin(); }
         inline std::vector<Vertex*>::const_iterator cbegin() const noexcept { return vertexes.cbegin(); }

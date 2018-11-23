@@ -18,6 +18,7 @@
 
 #include "../Engine/EntitySystem.hpp"
 #include "../Engine/StaticMethods.hpp"
+#include "../Engine/GUIInterface.hpp"
 #include "../Graph/Graph.hpp"
 
 using std::cin;
@@ -50,29 +51,38 @@ namespace at
             
             sf::RectangleShape panelShape;
             bool panelVisible{ true };
+            GUIButton button_Algorithm;
+            GUIButton button_Action;
+            
+            // TODO: Make it actually work
+            bool contentLoaded{ false };
+            float contentUpdateTime{ 0.f };
+            float contentDeltaScale{ 1.f };
+            sf::RenderTexture content;
+            sf::RenderTexture overlayContent;
             
             sf::Image image;
             sf::Texture texture;
             sf::Sprite sprite;
             float imageScale = 1.f;
             
+            sf::Text weightInfo;
             sf::CircleShape circle;
             sf::Vertex line[2] =
             {
-                sf::Vertex({0, 0}, sf::Color::Red),
-                sf::Vertex({10, 10}, sf::Color::Red)
+                sf::Vertex({0, 0}, sf::Color(255,255,255,140)),
+                sf::Vertex({10, 10}, sf::Color(255,255,255,140))
             };
             
-            bool controlPressed{ false };
-            
-            double dijekstraWeight{ std::numeric_limits<double>::infinity() };
+            double dijkstraWeight{ std::numeric_limits<double>::infinity() };
+            clock_t dijkstraTime{ 0 };
             float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
             
         public:
             Graph* graph{ nullptr };
             vector<VertexInfo*> vertexes;
             
-            float pointRadius{ 5 }, scale { 1.f };
+            float pointRadius{ 1 }, scale { 1.f };
             float x{ 0 }, y{ 0 };
             
             GraphMap(Graph* graph);
@@ -80,12 +90,18 @@ namespace at
             void Destroy() override;
             void Update(const sf::Time& elapsedTime) override;
             void Draw(sf::RenderWindow* window) override;
+            void DrawContent();
+            void DrawOverlay();
             void Resize(unsigned int width, unsigned int height) override;
             void PollEvent(sf::Event& event) override;
             void Load();
             void Load(const std::wstring& filename);
             void Save(const std::wstring& filename);
             void Clear();
+            
+            void Draw1(sf::RenderWindow* window);
+            void DrawContent1();
+            void DrawOverlay1();
         };
     }
 }

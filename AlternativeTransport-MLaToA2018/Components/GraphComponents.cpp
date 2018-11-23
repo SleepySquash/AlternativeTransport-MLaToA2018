@@ -24,6 +24,7 @@ namespace at
             circle.setFillColor(sf::Color::White);
             circle.setOutlineColor(sf::Color::Black);
             circle.setOutlineThickness(gs::scale);
+            circle.setPointCount(5);
             
             if ((fontLoaded = (fc::GetFont(L"Arial.ttf") != nullptr)))
                 text.setFont(*fc::GetFont(L"Arial.ttf"));
@@ -44,15 +45,33 @@ namespace at
             }
             
             panelShape.setFillColor(sf::Color(0, 0, 0, 160));
+            button_Algorithm.SetFont(L"Arial.ttf");
+            button_Algorithm.SetString(GetAlgorithmName(gs::algorithm));
+            button_Algorithm.characterSize = 42;
+            
+            button_Action.SetFont(L"Arial.ttf");
+            button_Action.SetString(L"Шаг вперёд");
+            button_Action.characterSize = 22;
         }
         void GraphMap::Destroy()
         {
             for (auto v : vertexes)
                 delete v;
         }
-        void GraphMap::Update(const sf::Time& elapsedTime)
+        void GraphMap::Update(const sf::Time &elapsedTime)
         {
+            button_Algorithm.Update(elapsedTime);
+            button_Action.Update(elapsedTime);
             
+            if (contentUpdateTime > 0)
+            {
+                contentUpdateTime -= elapsedTime.asSeconds();
+                if (contentUpdateTime < 0)
+                {
+                    contentUpdateTime = 0;
+                    DrawContent();
+                }
+            }
         }
         void GraphMap::Draw(sf::RenderWindow* window)
         {
@@ -65,16 +84,18 @@ namespace at
                 {
                     //TODO: if the vertex fits the screen
                     {
-                        float scaledRadius = circle.getRadius(); //* gs::scale*scale;
-                        line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale + scaledRadius, (y + v->y)*gs::scale*scale + scaledRadius};
+                        float scaledRadius = circle.getRadius();
+                        line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale};
                         for (auto e : v->vertex->edges)
                             if (e->out && e->to->vertexinfo->visible)
                             {
-                                line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale + scaledRadius,
-                                                                 (y + e->to->vertexinfo->y)*gs::scale*scale + scaledRadius };
+                                line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale,
+                                                                 (y + e->to->vertexinfo->y)*gs::scale*scale };
+                                if (!e->in) line[1].color = sf::Color(255,90,90,140);
                                 window->draw(line, 2, sf::Lines);
+                                if (!e->in) line[1].color = sf::Color(255,255,255,140);
                             }
-                        circle.setPosition((x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale);
+                        circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
                         
                         if (v->highlighted) {
                             wasHighlighted = true;
@@ -83,13 +104,27 @@ namespace at
                             wasHighlighted = false;
                             circle.setFillColor(sf::Color::White);
                         }
-                            
+                        
                         window->draw(circle);
                     }
                 }
             }
+            if (!graph->dijkstraShortestPath.empty())
+                for (unsigned long i = 0; i < graph->dijkstraShortestPath.size() - 1; ++i)
+                {
+                    Vertex* from = graph->dijkstraShortestPath[i];
+                    Vertex* to = graph->dijkstraShortestPath[i + 1];
+                    line[0].position = sf::Vector2f{ (x + from->vertexinfo->x)*gs::scale*scale,
+                                                     (y + from->vertexinfo->y)*gs::scale*scale};
+                    line[1].position = sf::Vector2f{ (x + to->vertexinfo->x)*gs::scale*scale ,
+                                                     (y + to->vertexinfo->y)*gs::scale*scale };
+                    line[0].color = sf::Color::Green; line[1].color = sf::Color::Green;
+                    window->draw(line, 2, sf::Lines);
+                    line[0].color = sf::Color(255,255,255,140); line[1].color = sf::Color(255,255,255,140);
+                }
             if (wasHighlighted)
                 circle.setFillColor(sf::Color::White);
+            
             if (fontLoaded)
             {
                 if (panelVisible)
@@ -107,12 +142,36 @@ namespace at
                 string = L"Масштаб: "; string += std::to_wstring(scale);
                 info.setPosition(info.getPosition().x, yy);
                 info.setString(string); window->draw(info);
-                yy += info.getLocalBounds().height + 2*gs::scale;
+                yy += (info.getLocalBounds().height + 2*gs::scale) * 2;
                 
-                string = L"Дейкстра: "; string += std::to_wstring(dijekstraWeight);
+                button_Algorithm.SetPosition(gs::width - panelShape.getSize().x/2, yy);
+                button_Algorithm.Draw(window);
+                yy += button_Algorithm.text.getLocalBounds().height + 5*gs::scale;
+                
+                string = L"Расстояние: "; string += std::to_wstring(dijkstraWeight);
                 info.setPosition(info.getPosition().x, yy);
                 info.setString(string); window->draw(info);
                 yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                string = L"(выполнено за: "; string += std::to_wstring(dijkstraTime); string += L")";
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += (info.getLocalBounds().height + 2*gs::scale)*2;
+                
+                string = L"Пошаговое управление";
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string);
+                yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                button_Action.SetString(L"Назад");
+                button_Action.SetPosition(gs::width - panelShape.getSize().x/2, yy);
+                button_Action.Draw(window);
+                yy += button_Action.text.getLocalBounds().height + 2*gs::scale;
+                
+                button_Action.SetString(L"Вперёд");
+                button_Action.SetPosition(gs::width - panelShape.getSize().x/2, yy);
+                button_Action.Draw(window);
+                yy += button_Action.text.getLocalBounds().height + 2*gs::scale;
             }
         }
         void GraphMap::Resize(unsigned int width, unsigned int height)
@@ -120,7 +179,7 @@ namespace at
             circle.setRadius(pointRadius * gs::scale*scale);
             circle.setOutlineThickness(gs::scale*scale);
             
-            text.setCharacterSize(30 * gs::scale);
+            text.setCharacterSize(45 * gs::scale);
             text.setOutlineThickness(gs::scale);
             
             info.setCharacterSize(20 * gs::scale);
@@ -137,6 +196,21 @@ namespace at
             
             panelShape.setSize({(float)(gs::width - posx), (float)(gs::height)});
             panelShape.setPosition(posx, 0);
+            button_Algorithm.Resize(width, height);
+            button_Action.Resize(width, height);
+            
+            if (contentLoaded)
+            {
+                //content.create(width, height);
+                content.create((abs(rightBorderX - leftBorderX) > image.getSize().x ?
+                                abs(rightBorderX - leftBorderX) : (float)image.getSize().x) * gs::scale * scale,
+                               (abs(bottomBorderY - topBorderY) > image.getSize().y ?
+                                abs(bottomBorderY - topBorderY) : (float)image.getSize().y) * gs::scale * scale);
+                DrawContent();
+            }
+            
+            overlayContent.create(width, height);
+            DrawOverlay();
         }
         void GraphMap::PollEvent(sf::Event& event)
         {
@@ -147,20 +221,21 @@ namespace at
                     Vertex* vertex = new Vertex();
                     VertexInfo* vinfo = new VertexInfo(vertex);
                     vertex->vertexinfo = vinfo;
-                    vinfo->x = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
-                    vinfo->y = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
+                    
+                    vinfo->x = -x + event.mouseButton.x/(gs::scale * scale);
+                    vinfo->y = -y + event.mouseButton.y/(gs::scale * scale);
                     vinfo->visible = true;
                     
                     //vertex->Sync(graph->vertexes[0], 10);
                     
-                    graph->vertexes.push_back(vertex);
+                    graph->Push(vertex);
                     vertexes.push_back(vinfo);
                 }
                 else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LControl))
                 {
                     bool found{ false };
-                    float mx = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
-                    float my = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
+                    float mx = -x + event.mouseButton.x/(gs::scale * scale);
+                    float my = -y + event.mouseButton.y/(gs::scale * scale);
                     for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
                     {
                         if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
@@ -192,15 +267,22 @@ namespace at
                 }
                 else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::S))
                 {
+                    if (!graph->dijkstraShortestPath.empty())
+                    {
+                        for (auto v : graph->dijkstraShortestPath)
+                            v->vertexinfo->highlighted = false;
+                        graph->dijkstraShortestPath.clear();
+                    }
+                    
                     bool found{ false };
-                    float mx = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
-                    float my = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
+                    float mx = -x + event.mouseButton.x/(gs::scale * scale);
+                    float my = -y + event.mouseButton.y/(gs::scale * scale);
                     for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
                     {
                         if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
                             my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
                         {
-                            dijekstraWeight = std::numeric_limits<double>::infinity();
+                            dijkstraWeight = std::numeric_limits<double>::infinity();
                             if (source == vertexes[i]) {
                                 source->highlighted = false;
                                 source = nullptr;
@@ -208,9 +290,16 @@ namespace at
                                 source = vertexes[i];
                                 source->highlighted = true;
                             } else {
-                                dijekstraWeight = graph->Dijekstra(source->vertex, vertexes[i]->vertex);
+                                clock_t beg = clock();
+                                dijkstraWeight = graph->Dijkstra(source->vertex, vertexes[i]->vertex);
+                                clock_t end = clock();
+                                dijkstraTime = end - beg;
+                                
                                 source->highlighted = false;
                                 source = nullptr;
+                                if (!graph->dijkstraShortestPath.empty())
+                                    for (auto v : graph->dijkstraShortestPath)
+                                        v->vertexinfo->highlighted = true;
                             }
                             found = true;
                             event = sf::Event();
@@ -226,13 +315,15 @@ namespace at
                 }
                 else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LAlt))
                 {
-                    float mx = -x + event.mouseButton.x/(gs::scale * scale) - pointRadius;
-                    float my = -y + event.mouseButton.y/(gs::scale * scale) - pointRadius;
+                    float mx = -x + event.mouseButton.x/(gs::scale * scale);
+                    float my = -y + event.mouseButton.y/(gs::scale * scale);
                     for (unsigned long i = vertexes.size() - 1; i >= 0; --i)
                     {
                         if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
                             my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
                         {
+                            if (source == vertexes[i])
+                                source = nullptr;
                             graph->Remove(vertexes[i]->vertex);
                             delete vertexes[i];
                             vertexes.erase(vertexes.begin() + i);
@@ -242,6 +333,27 @@ namespace at
                         }
                         if (i == 0) break;
                     }
+                }
+                else
+                {
+                    button_Algorithm.PollEvent(event);
+                    if (button_Algorithm.IsPressed())
+                        cout << "Pressed" << endl;
+                    else
+                    {
+                        button_Action.SetString(L"Вперёд");
+                        button_Action.PollEvent(event);
+                        if (button_Action.IsPressed())
+                            cout << "Pressed" << endl;
+                    }
+                }
+            }
+            else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Num0)
+            {
+                for (auto v : vertexes)
+                {
+                    v->x += 10;
+                    v->y += 10;
                 }
             }
             else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::R)
@@ -269,6 +381,8 @@ namespace at
                             x -= (gs::width/(gs::scale*scale) - gs::width/(gs::scale*scale) * (scalePrev/scale))/2;
                             y -= (gs::height/(gs::scale*scale) - gs::height/(gs::scale*scale) * (scalePrev/scale))/2;
                             sprite.setScale(gs::scale*scale*imageScale, gs::scale*scale*imageScale);
+                            contentDeltaScale -= scalePrev - scale;
+                            contentUpdateTime = 0.2f;
                         }
                     }
                     else if (event.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel)
@@ -372,6 +486,16 @@ namespace at
                                 }
                             }
                         }
+                        
+                        contentLoaded = false; // <- true
+                        if (contentLoaded)
+                        {
+                            content.create((abs(rightBorderX - leftBorderX) > image.getSize().x ?
+                                            abs(rightBorderX - leftBorderX) : (float)image.getSize().x) * gs::scale * scale,
+                                           (abs(bottomBorderY - topBorderY) > image.getSize().y ?
+                                            abs(bottomBorderY - topBorderY) : (float)image.getSize().y) * gs::scale * scale);
+                            DrawContent();
+                        }
                     }
                 }
             }
@@ -415,5 +539,175 @@ namespace at
             vertexes.clear();
         }
         
+        
+        
+        
+        
+        
+        void GraphMap::Draw1(sf::RenderWindow* window)
+        {
+            sf::Sprite sprite(content.getTexture());
+            sprite.setPosition(x*contentDeltaScale, y*contentDeltaScale);
+            sprite.setScale(contentDeltaScale, contentDeltaScale);
+            window->draw(sprite);
+            window->draw(sf::Sprite(overlayContent.getTexture()));
+            
+            if (fontLoaded)
+            {
+                int yy = info_yy;
+                sf::String string;
+                
+                string = L"Вершин: "; string += std::to_wstring(vertexes.size());
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                string = L"Масштаб: "; string += std::to_wstring(scale);
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += (info.getLocalBounds().height + 2*gs::scale) * 2;
+                
+                button_Algorithm.SetPosition(gs::width - panelShape.getSize().x/2, yy);
+                button_Algorithm.Draw(window);
+                yy += button_Algorithm.text.getLocalBounds().height + 5*gs::scale;
+                
+                string = L"Расстояние: "; string += std::to_wstring(dijkstraWeight);
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                string = L"(выполнено за: "; string += std::to_wstring(dijkstraTime); string += L")";
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += (info.getLocalBounds().height + 2*gs::scale)*2;
+                
+                string = L"Пошаговое управление";
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                button_Action.SetString(L"Назад");
+                button_Action.SetPosition(gs::width - panelShape.getSize().x/2, yy);
+                button_Action.Draw(window);
+                yy += button_Action.text.getLocalBounds().height + 2*gs::scale;
+                
+                button_Action.SetString(L"Вперёд");
+                button_Action.SetPosition(gs::width - panelShape.getSize().x/2, yy);
+                button_Action.Draw(window);
+                yy += button_Action.text.getLocalBounds().height + 2*gs::scale;
+            }
+        }
+        void GraphMap::DrawContent()
+        {
+            
+        }
+        void GraphMap::DrawContent1()
+        {
+            contentDeltaScale = 1.f;
+            content.clear(sf::Color::Transparent);
+            
+            sf::RenderTexture* window = &content;
+            window->draw(sprite);
+            
+            bool wasHighlighted{ false };
+            for (auto v : vertexes)
+            {
+                if (v->visible)
+                {
+                    //TODO: if the vertex fits the screen
+                    {
+                        float scaledRadius = circle.getRadius(); //* gs::scale*scale;
+                        line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale + scaledRadius, (y + v->y)*gs::scale*scale + scaledRadius};
+                        for (auto e : v->vertex->edges)
+                            if (e->out && e->to->vertexinfo->visible)
+                            {
+                                line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale + scaledRadius,
+                                    (y + e->to->vertexinfo->y)*gs::scale*scale + scaledRadius };
+                                window->draw(line, 2, sf::Lines);
+                            }
+                        circle.setPosition((x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale);
+                        
+                        if (v->highlighted) {
+                            wasHighlighted = true;
+                            circle.setFillColor(sf::Color::Magenta);
+                        } else if (wasHighlighted) {
+                            wasHighlighted = false;
+                            circle.setFillColor(sf::Color::White);
+                        }
+                        
+                        window->draw(circle);
+                    }
+                }
+            }
+            if (!graph->dijkstraShortestPath.empty())
+                for (unsigned long i = 0; i < graph->dijkstraShortestPath.size() - 1; ++i)
+                {
+                    Vertex* from = graph->dijkstraShortestPath[i];
+                    Vertex* to = graph->dijkstraShortestPath[i + 1];
+                    float scaledRadius = circle.getRadius();
+                    line[0].position = sf::Vector2f{ (x + from->vertexinfo->x)*gs::scale*scale + scaledRadius,
+                        (y + from->vertexinfo->y)*gs::scale*scale + scaledRadius};
+                    line[1].position = sf::Vector2f{ (x + to->vertexinfo->x)*gs::scale*scale + scaledRadius,
+                        (y + to->vertexinfo->y)*gs::scale*scale + scaledRadius };
+                    line[0].color = sf::Color::Green; line[1].color = sf::Color::Green;
+                    window->draw(line, 2, sf::Lines);
+                    line[0].color = sf::Color::Red; line[1].color = sf::Color::Red;
+                }
+            if (wasHighlighted)
+                circle.setFillColor(sf::Color::White);
+            
+            content.display();
+        }
+        void GraphMap::DrawOverlay()
+        {
+            
+        }
+        void GraphMap::DrawOverlay1()
+        {
+            overlayContent.clear(sf::Color::Transparent);
+            
+            sf::RenderTexture* window = &overlayContent;
+            if (fontLoaded)
+            {
+                if (panelVisible)
+                    window->draw(panelShape);
+                window->draw(text);
+                
+                int yy = info_yy;
+                sf::String string;
+                
+                string = L"Вершин: "; string += std::to_wstring(vertexes.size());
+                info.setString(string);
+                yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                string = L"Масштаб: "; string += std::to_wstring(scale);
+                info.setString(string);
+                yy += (info.getLocalBounds().height + 2*gs::scale) * 2;
+                
+                button_Algorithm.SetPosition(gs::width - panelShape.getSize().x/2, yy);
+                yy += button_Algorithm.text.getLocalBounds().height + 5*gs::scale;
+                
+                string = L"Расстояние: "; string += std::to_wstring(dijkstraWeight);
+                info.setString(string);
+                yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                string = L"(выполнено за: "; string += std::to_wstring(dijkstraTime); string += L")";
+                info.setString(string);
+                yy += (info.getLocalBounds().height + 2*gs::scale)*2;
+                
+                string = L"Пошаговое управление";
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += info.getLocalBounds().height + 2*gs::scale;
+                
+                button_Action.SetString(L"Назад");
+                yy += button_Action.text.getLocalBounds().height + 2*gs::scale;
+                
+                button_Action.SetString(L"Вперёд");
+                yy += button_Action.text.getLocalBounds().height + 2*gs::scale;
+            }
+            
+            overlayContent.display();
+        }
     }
 }

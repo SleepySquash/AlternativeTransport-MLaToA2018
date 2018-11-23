@@ -85,6 +85,7 @@ namespace at
     #endif
         wif.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
         
+        dijkstraShortestPath.clear();
         if ((loaded = wif.is_open()))
         {
             filePath = filename;
@@ -194,43 +195,60 @@ namespace at
         loaded = false;
         filePath = L"";
     }
-    double Graph::Dijekstra(Vertex* s, Vertex* t)
+    double Graph::Dijkstra(Vertex* s, Vertex* t)
     {
+        dijkstraShortestPath.clear();
         for (auto v : vertexes) {
-            v->dijekstraOut = false;
-            v->dijekstraWeight = std::numeric_limits<double>::infinity();}
+            v->dijkstraOut = false;
+            v->dijkstraWeight = std::numeric_limits<double>::infinity();
+            v->dijkstraPrevious = nullptr;}
         vector<Vertex*> stack;
-        s->dijekstraWeight = 0;
+        s->dijkstraWeight = 0;
         stack.push_back(s);
         
         while (!stack.empty())
         {
             // Ищем вершину с минимальным весом, её обрабатываем первой (эвристика Дейкстры)
+            // TODO: Use binary tree (std::set)
             double min = std::numeric_limits<double>::infinity();
             unsigned long beg = 0;
             for (int i = 0; i < stack.size(); ++i)
-                if (min > stack[i]->dijekstraWeight)
+                if (min > stack[i]->dijkstraWeight)
                 {
                     beg = i;
-                    min = stack[i]->dijekstraWeight;
+                    min = stack[i]->dijkstraWeight;
                 }
             Vertex* current = stack[beg];
             
             // Каждой соединённой с нынешней вершиной вершине ищем "новые" минимальные расстояния
             for (auto e : *current)
-                if (e->out && !e->to->dijekstraOut)
+                if (e->out && !e->to->dijkstraOut)
                 {
-                    if (e->to->dijekstraWeight > current->dijekstraWeight + e->weight)
-                        e->to->dijekstraWeight = current->dijekstraWeight + e->weight;
+                    if (e->to->dijkstraWeight > current->dijkstraWeight + e->weight)
+                    {
+                        e->to->dijkstraWeight = current->dijkstraWeight + e->weight;
+                        e->to->dijkstraPrevious = current;
+                    }
                     if (e->to != t) stack.push_back(e->to);
                 }
-            current->dijekstraOut = true;
+            current->dijkstraOut = true;
             stack.erase(stack.begin() + beg);
             
             // TODO: прекращение работы Дейкстры, если уже нашли мин. расстояние до (t)arget
             //       if (current == s) done = true; ?
         }
         
-        return t->dijekstraWeight;
+        // Кратчайший путь
+        if (t->dijkstraWeight != 0)
+        {
+            Vertex* current = t;
+            while (current != nullptr)
+            {
+                dijkstraShortestPath.insert(dijkstraShortestPath.begin(), current);
+                current = current->dijkstraPrevious;
+            }
+        }
+        
+        return t->dijkstraWeight;
     }
 }

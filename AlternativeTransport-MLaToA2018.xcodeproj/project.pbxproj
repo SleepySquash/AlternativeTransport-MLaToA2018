@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DD0FA74221A680E800A4D10B /* GUIInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DD0FA74021A680E800A4D10B /* GUIInterface.cpp */; };
+		DD0FA74321A680E800A4D10B /* GUIInterface.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DD0FA74021A680E800A4D10B /* GUIInterface.cpp */; };
 		DD310C2E21A0065100B10EF4 /* GraphComponents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DD310C2C21A0065100B10EF4 /* GraphComponents.cpp */; };
 		DD310C2F21A0065100B10EF4 /* GraphComponents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DD310C2C21A0065100B10EF4 /* GraphComponents.cpp */; };
 		DD9313FE219D8F260078ED75 /* Graph.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DD9313FC219D8F260078ED75 /* Graph.cpp */; };
@@ -46,6 +48,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		DD0FA74021A680E800A4D10B /* GUIInterface.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GUIInterface.cpp; sourceTree = "<group>"; };
+		DD0FA74121A680E800A4D10B /* GUIInterface.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = GUIInterface.hpp; sourceTree = "<group>"; };
 		DD310C2C21A0065100B10EF4 /* GraphComponents.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = GraphComponents.cpp; sourceTree = "<group>"; };
 		DD310C2D21A0065100B10EF4 /* GraphComponents.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = GraphComponents.hpp; sourceTree = "<group>"; };
 		DD9313FC219D8F260078ED75 /* Graph.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Graph.cpp; sourceTree = "<group>"; };
@@ -165,6 +169,8 @@
 				DD931409219D95DF0078ED75 /* EntitySystem.hpp */,
 				DD931410219D96890078ED75 /* StaticMethods.cpp */,
 				DD931411219D96890078ED75 /* StaticMethods.hpp */,
+				DD0FA74021A680E800A4D10B /* GUIInterface.cpp */,
+				DD0FA74121A680E800A4D10B /* GUIInterface.hpp */,
 			);
 			path = Engine;
 			sourceTree = "<group>";
@@ -374,6 +380,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DD931402219D8F410078ED75 /* Base.cpp in Sources */,
+				DD0FA74221A680E800A4D10B /* GUIInterface.cpp in Sources */,
 				DDAB7472215D88050062F8B6 /* main.cpp in Sources */,
 				DD93141A219F132C0078ED75 /* EssentialComponents.cpp in Sources */,
 				DD9313FE219D8F260078ED75 /* Graph.cpp in Sources */,
@@ -395,6 +402,7 @@
 				DD93140B219D95DF0078ED75 /* EntitySystem.cpp in Sources */,
 				DD931413219D96890078ED75 /* StaticMethods.cpp in Sources */,
 				DD310C2F21A0065100B10EF4 /* GraphComponents.cpp in Sources */,
+				DD0FA74321A680E800A4D10B /* GUIInterface.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

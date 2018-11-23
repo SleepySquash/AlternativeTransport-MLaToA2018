@@ -58,7 +58,12 @@ namespace at
         static bool isVerticalSyncEnabled;
         static int framerateLimit;
         static int framerateNoFocus;
+        
+        enum class algorithmEnum { Dijkstra, DijkstraOptimized, DoubleDijkstra, ParallelDijkstra, AStar, ArcFlags, ArcFlagsParallel, ContractionHierarchy, HubLabel, Overlay, TableLookup };
+        static algorithmEnum algorithm;
     };
+    
+    std::wstring GetAlgorithmName(const GlobalSettings::algorithmEnum& algorithm);
     
     typedef GlobalSettings gs;
     typedef FontCollector fc;

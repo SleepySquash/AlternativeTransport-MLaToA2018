@@ -80,4 +80,46 @@ namespace at
     bool gs::isVerticalSyncEnabled = true;
     int gs::framerateLimit = 120;
     int gs::framerateNoFocus = 30;
+    
+    gs::algorithmEnum gs::algorithm = algorithmEnum::Dijkstra;
+    
+    std::wstring GetAlgorithmName(const gs::algorithmEnum& algorithm)
+    {
+        switch (algorithm)
+        {
+            case GlobalSettings::algorithmEnum::Dijkstra:
+                return L"Дейкстра";
+                break;
+            case GlobalSettings::algorithmEnum::DijkstraOptimized:
+                return L"Дейкстра++";
+                break;
+            case GlobalSettings::algorithmEnum::DoubleDijkstra:
+                return L"Двунаправленный Дейкстра";
+                break;
+            case GlobalSettings::algorithmEnum::ParallelDijkstra:
+                return L"Парарллельный Дейкстра";
+                break;
+            case GlobalSettings::algorithmEnum::AStar:
+                return L"A-звезда";
+                break;
+            case GlobalSettings::algorithmEnum::ArcFlags:
+                return L"Арк флаги";
+                break;
+            case GlobalSettings::algorithmEnum::ArcFlagsParallel:
+                return L"Параллельные Арк флаги";
+                break;
+            case GlobalSettings::algorithmEnum::ContractionHierarchy:
+                return L"Контракционная иерархия";
+                break;
+            case GlobalSettings::algorithmEnum::HubLabel:
+                return L"Метки Хабами";
+                break;
+            case GlobalSettings::algorithmEnum::Overlay:
+                return L"Оверлей граф";
+                break;
+            case GlobalSettings::algorithmEnum::TableLookup:
+                return L"Таблица";
+                break;
+        }
+    }
 }

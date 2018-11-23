@@ -57,15 +57,8 @@ int main()
     
     
     
-    
     Graph graph;
     graph.Load(utf16(resourcePath()) + L"Data/in.txt");
-    
-    clock_t beg = clock();
-    cout << "s-t расстояние: " << graph.Dijekstra(graph[0], graph[15]) << endl;
-    clock_t end = clock();
-    cout << "Время выполнения: " << (end - beg) << " тиков" << endl << endl;
-    
     
     
     
@@ -78,8 +71,6 @@ int main()
     GraphComponents::GraphMap* graphmap;
     {
         graphmap = Elizabeth->AddComponent<GraphComponents::GraphMap>(&graph);
-        graphmap->vertexes[0]->highlighted = true;
-        graphmap->vertexes[15]->highlighted = true;
     }
     //graphmap->Save(utf16(resourcePath()) + L"Data/out.txt");
     
@@ -94,7 +85,6 @@ int main()
     {
         Shimakaze->AddComponent<EssentialComponents::DebugComponent>("Update 0 build 1");
     }
-    
     
     
     sf::Clock clock;
@@ -128,6 +118,7 @@ int main()
                 case sf::Event::KeyReleased:
                     switch (event.key.code)
                     {
+                        case sf::Keyboard::Num0:
                         case sf::Keyboard::R:
                             system.PollEvent(event);
                             break;
@@ -138,7 +129,7 @@ int main()
                             graphmap->Clear();
                             graphmap->Load(utf16(resourcePath()) + L"Data/out.txt");
                             break;
-                        case sf::Keyboard::S:
+                        case sf::Keyboard::K:
                             graphmap->Save(utf16(resourcePath()) + L"Data/out.txt");
                             break;
                         default:
