@@ -56,10 +56,10 @@ namespace at
         void Sync(Vertex* to, double weight, bool out = true, bool in = true);
         Edge* Connection(Vertex* to);
         
-        inline std::vector<Edge*>::iterator begin() noexcept { return edges.begin(); }
-        inline std::vector<Edge*>::const_iterator cbegin() const noexcept { return edges.cbegin(); }
-        inline std::vector<Edge*>::iterator end() noexcept { return edges.end(); }
-        inline std::vector<Edge*>::const_iterator cend() const noexcept { return edges.cend(); }
+        inline std::vector<Edge*>::iterator begin() { return edges.begin(); }
+        inline std::vector<Edge*>::const_iterator cbegin() const { return edges.cbegin(); }
+        inline std::vector<Edge*>::iterator end() { return edges.end(); }
+        inline std::vector<Edge*>::const_iterator cend() const { return edges.cend(); }
         
         friend class Edge;
         friend class Graph;
@@ -85,10 +85,10 @@ namespace at
         void Clear();
         double Dijkstra(Vertex* s, Vertex* t);
         
-        inline std::vector<Vertex*>::iterator begin() noexcept { return vertexes.begin(); }
-        inline std::vector<Vertex*>::const_iterator cbegin() const noexcept { return vertexes.cbegin(); }
-        inline std::vector<Vertex*>::iterator end() noexcept { return vertexes.end(); }
-        inline std::vector<Vertex*>::const_iterator cend() const noexcept { return vertexes.cend(); }
+        inline std::vector<Vertex*>::iterator begin() { return vertexes.begin(); }
+        inline std::vector<Vertex*>::const_iterator cbegin() const { return vertexes.cbegin(); }
+        inline std::vector<Vertex*>::iterator end() { return vertexes.end(); }
+        inline std::vector<Vertex*>::const_iterator cend() const { return vertexes.cend(); }
         
         friend class Edge;
         friend class Vertex;

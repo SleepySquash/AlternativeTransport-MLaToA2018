@@ -20,6 +20,9 @@ namespace at
         }
         void GraphMap::Init()
         {
+            line[0] = sf::Vertex({0, 0}, sf::Color(255,255,255,110));
+            line[1] = sf::Vertex({10, 10}, sf::Color(255,255,255,110));
+            
             circle.setRadius(pointRadius * gs::scale);
             circle.setFillColor(sf::Color::White);
             circle.setOutlineColor(sf::Color::Black);
@@ -50,8 +53,13 @@ namespace at
             button_Algorithm.characterSize = 42;
             
             button_Action.SetFont(L"Arial.ttf");
-            button_Action.SetString(L"Шаг вперёд");
+            button_Action.SetString(L"[Выполнить шаг]");
             button_Action.characterSize = 22;
+            
+            button_Graph.SetFont(L"Arial.ttf");
+            button_Graph.SetString(L"Автомобильный");
+            button_Graph.characterSize = 22;
+            button_Graph.halign = at::GUIButton::halignEnum::left;
         }
         void GraphMap::Destroy()
         {
@@ -62,6 +70,7 @@ namespace at
         {
             button_Algorithm.Update(elapsedTime);
             button_Action.Update(elapsedTime);
+            button_Graph.Update(elapsedTime);
             
             if (contentUpdateTime > 0)
             {
@@ -71,6 +80,13 @@ namespace at
                     contentUpdateTime = 0;
                     DrawContent();
                 }
+            }
+            
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Right) || sf::Mouse::isButtonPressed(sf::Mouse::Middle))
+            {
+                x = move_dx + sf::Mouse::getPosition(*gs::window).x/(scale*gs::scale);
+                y = move_dy + sf::Mouse::getPosition(*gs::window).y/(scale*gs::scale);
+                sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
             }
         }
         void GraphMap::Draw(sf::RenderWindow* window)
@@ -120,7 +136,7 @@ namespace at
                                                      (y + to->vertexinfo->y)*gs::scale*scale };
                     line[0].color = sf::Color::Green; line[1].color = sf::Color::Green;
                     window->draw(line, 2, sf::Lines);
-                    line[0].color = sf::Color(255,255,255,140); line[1].color = sf::Color(255,255,255,140);
+                    line[0].color = sf::Color(255,255,255,110); line[1].color = sf::Color(255,255,255,110);
                 }
             if (wasHighlighted)
                 circle.setFillColor(sf::Color::White);
@@ -148,7 +164,8 @@ namespace at
                 button_Algorithm.Draw(window);
                 yy += button_Algorithm.text.getLocalBounds().height + 5*gs::scale;
                 
-                string = L"Расстояние: "; string += std::to_wstring(dijkstraWeight);
+                string = L"Расстояние: "; if (dijkstraWeight == std::numeric_limits<double>::infinity())
+                    string += L"inf"; else string += std::to_wstring((unsigned long)dijkstraWeight);
                 info.setPosition(info.getPosition().x, yy);
                 info.setString(string); window->draw(info);
                 yy += info.getLocalBounds().height + 2*gs::scale;
@@ -158,20 +175,45 @@ namespace at
                 info.setString(string); window->draw(info);
                 yy += (info.getLocalBounds().height + 2*gs::scale)*2;
                 
-                string = L"Пошаговое управление";
+                string = L"Пошаговое управление"; info.setCharacterSize(25 * gs::scale);
                 info.setPosition(info.getPosition().x, yy);
-                info.setString(string);
+                info.setString(string); window->draw(info);
+                yy += info.getLocalBounds().height + 2*gs::scale;  info.setCharacterSize(20 * gs::scale);
+                
+                button_Action.SetPosition(gs::width - panelShape.getSize().x/2, yy);
+                button_Action.Draw(window);
+                yy += (button_Action.text.getLocalBounds().height + 2*gs::scale)*2;
+                
+                string = L"Персонализация"; info.setCharacterSize(30 * gs::scale);
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
+                yy += (info.getLocalBounds().height + 2*gs::scale)*2; info.setCharacterSize(20 * gs::scale);
+                
+                string = L"Скорость: "; string += L"TODO";
+                info.setPosition(info.getPosition().x, yy);
+                info.setString(string); window->draw(info);
                 yy += info.getLocalBounds().height + 2*gs::scale;
                 
-                button_Action.SetString(L"Назад");
-                button_Action.SetPosition(gs::width - panelShape.getSize().x/2, yy);
-                button_Action.Draw(window);
-                yy += button_Action.text.getLocalBounds().height + 2*gs::scale;
                 
-                button_Action.SetString(L"Вперёд");
-                button_Action.SetPosition(gs::width - panelShape.getSize().x/2, yy);
-                button_Action.Draw(window);
-                yy += button_Action.text.getLocalBounds().height + 2*gs::scale;
+                int xx = button_Graph_xx;
+                button_Graph.SetString(L"Автомобильный");
+                button_Graph.SetPosition(xx, button_Graph.text.getPosition().y);
+                button_Graph.Draw(window);
+                xx += button_Graph.text.getLocalBounds().width + 15*gs::scale;
+                
+                button_Graph.SetString(L"Пеший");
+                button_Graph.SetPosition(xx, button_Graph.text.getPosition().y);
+                button_Graph.Draw(window);
+                xx += button_Graph.text.getLocalBounds().width + 15*gs::scale;
+                
+                button_Graph.SetString(L"Общественный");
+                button_Graph.SetPosition(xx, button_Graph.text.getPosition().y);
+                button_Graph.Draw(window);
+                xx += button_Graph.text.getLocalBounds().width + 15*gs::scale;
+                
+                button_Graph.SetString(L"ЛЭТИ(временно)");
+                button_Graph.SetPosition(xx, button_Graph.text.getPosition().y);
+                button_Graph.Draw(window);
             }
         }
         void GraphMap::Resize(unsigned int width, unsigned int height)
@@ -185,7 +227,6 @@ namespace at
             info.setCharacterSize(20 * gs::scale);
             info.setOutlineThickness(gs::scale);
             info_yy = gs::height/10 + text.getLocalBounds().height + 10*gs::scale;
-            //info_xx = gs::width - text.getLocalBounds().width - gs::width/10 - 10*gs::scale;
             info.setPosition(gs::width - text.getLocalBounds().width - gs::width/10 - 20*gs::scale, info_yy);
             
             sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
@@ -198,10 +239,16 @@ namespace at
             panelShape.setPosition(posx, 0);
             button_Algorithm.Resize(width, height);
             button_Action.Resize(width, height);
+            button_Graph.Resize(width, height);
+            
+            button_Graph.SetString(L"Автомобильный"); int xx = button_Graph.text.getLocalBounds().width + 15*gs::scale;
+            button_Graph.SetString(L"Пеший"); xx += button_Graph.text.getLocalBounds().width + 15*gs::scale;
+            button_Graph.SetString(L"Общественный"); xx += button_Graph.text.getLocalBounds().width + 15*gs::scale;
+            button_Graph.SetString(L"ЛЭТИ(временно)"); xx += button_Graph.text.getLocalBounds().width;
+            button_Graph_xx = gs::width/2 - xx/2;
             
             if (contentLoaded)
             {
-                //content.create(width, height);
                 content.create((abs(rightBorderX - leftBorderX) > image.getSize().x ?
                                 abs(rightBorderX - leftBorderX) : (float)image.getSize().x) * gs::scale * scale,
                                (abs(bottomBorderY - topBorderY) > image.getSize().y ?
@@ -214,9 +261,15 @@ namespace at
         }
         void GraphMap::PollEvent(sf::Event& event)
         {
-            if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+            if (event.type == sf::Event::MouseButtonPressed &&
+                (event.mouseButton.button == sf::Mouse::Right || event.mouseButton.button == sf::Mouse::Middle))
             {
-                if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LShift))
+                move_dx = x - event.mouseButton.x/(scale*gs::scale);
+                move_dy = y - event.mouseButton.y/(scale*gs::scale);
+            }
+            else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
+            {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::LShift))
                 {
                     Vertex* vertex = new Vertex();
                     VertexInfo* vinfo = new VertexInfo(vertex);
@@ -231,15 +284,16 @@ namespace at
                     graph->Push(vertex);
                     vertexes.push_back(vinfo);
                 }
-                else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+                else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
                 {
                     bool found{ false };
                     float mx = -x + event.mouseButton.x/(gs::scale * scale);
                     float my = -y + event.mouseButton.y/(gs::scale * scale);
+                    float actualRadius = ((scale >= 2.5) ? 2.5/scale : 1.f) * pointRadius;
                     for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
                     {
-                        if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
-                            my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
+                        if (mx > vertexes[i]->x - actualRadius && mx < vertexes[i]->x + actualRadius &&
+                            my > vertexes[i]->y - actualRadius && my < vertexes[i]->y + actualRadius)
                         {
                             if (source == nullptr) {
                                 source = vertexes[i];
@@ -265,7 +319,7 @@ namespace at
                         source = nullptr;
                     }
                 }
-                else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::S))
+                else if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
                 {
                     if (!graph->dijkstraShortestPath.empty())
                     {
@@ -277,10 +331,11 @@ namespace at
                     bool found{ false };
                     float mx = -x + event.mouseButton.x/(gs::scale * scale);
                     float my = -y + event.mouseButton.y/(gs::scale * scale);
+                    float actualRadius = ((scale >= 2.5) ? 2.5/scale : 1.f) * pointRadius;
                     for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
                     {
-                        if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
-                            my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
+                        if (mx > vertexes[i]->x - actualRadius && mx < vertexes[i]->x + actualRadius &&
+                            my > vertexes[i]->y - actualRadius && my < vertexes[i]->y + actualRadius)
                         {
                             dijkstraWeight = std::numeric_limits<double>::infinity();
                             if (source == vertexes[i]) {
@@ -313,14 +368,15 @@ namespace at
                         source = nullptr;
                     }
                 }
-                else if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LAlt))
+                else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LAlt))
                 {
                     float mx = -x + event.mouseButton.x/(gs::scale * scale);
                     float my = -y + event.mouseButton.y/(gs::scale * scale);
+                    float actualRadius = ((scale >= 2.5) ? 2.5/scale : 1.f) * pointRadius;
                     for (unsigned long i = vertexes.size() - 1; i >= 0; --i)
                     {
-                        if (mx > vertexes[i]->x - pointRadius && mx < vertexes[i]->x + pointRadius &&
-                            my > vertexes[i]->y - pointRadius && my < vertexes[i]->y + pointRadius)
+                        if (mx > vertexes[i]->x - actualRadius && mx < vertexes[i]->x + actualRadius &&
+                            my > vertexes[i]->y - actualRadius && my < vertexes[i]->y + actualRadius)
                         {
                             if (source == vertexes[i])
                                 source = nullptr;
@@ -341,25 +397,65 @@ namespace at
                         cout << "Pressed" << endl;
                     else
                     {
-                        button_Action.SetString(L"Вперёд");
                         button_Action.PollEvent(event);
                         if (button_Action.IsPressed())
                             cout << "Pressed" << endl;
+                        else
+                        {
+                            int xx = button_Graph_xx;
+                            button_Graph.SetString(L"Автомобильный");
+                            button_Graph.SetPosition(xx, button_Graph.text.getPosition().y);
+                            button_Graph.PollEvent(event);
+                            if (button_Graph.IsPressed())
+                                { Clear(); Load(utf16(resourcePath()) + L"Data/Graph/auto.txt"); }
+                            else
+                            {
+                                xx += button_Graph.text.getLocalBounds().width + 15*gs::scale;
+                                
+                                button_Graph.SetString(L"Пеший");
+                                button_Graph.SetPosition(xx, button_Graph.text.getPosition().y);
+                                button_Graph.PollEvent(event);
+                                if (button_Graph.IsPressed())
+                                    { Clear(); Load(utf16(resourcePath()) + L"Data/Graph/foot.txt"); }
+                                else
+                                {
+                                    xx += button_Graph.text.getLocalBounds().width + 15*gs::scale;
+                                    
+                                    button_Graph.SetString(L"Общественный");
+                                    button_Graph.SetPosition(xx, button_Graph.text.getPosition().y);
+                                    button_Graph.PollEvent(event);
+                                    if (button_Graph.IsPressed())
+                                        { Clear(); Load(utf16(resourcePath()) + L"Data/Graph/social.txt"); }
+                                    else
+                                    {
+                                        xx += button_Graph.text.getLocalBounds().width + 15*gs::scale;
+                                        
+                                        button_Graph.SetString(L"ЛЭТИ(временно)");
+                                        button_Graph.SetPosition(xx, button_Graph.text.getPosition().y);
+                                        button_Graph.PollEvent(event);
+                                        if (button_Graph.IsPressed())
+                                            { Clear(); Load(utf16(resourcePath()) + L"Data/Graph/eltech.txt"); }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
             else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Num0)
             {
-                for (auto v : vertexes)
+                /// Служебное событие для глобальных корректировок
+                /*for (auto v : vertexes)
                 {
                     v->x += 10;
                     v->y += 10;
-                }
+                }*/
             }
             else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::R)
             {
-                x = (rightBorderX - leftBorderX) / (scale * 2);
-                y = (bottomBorderY - topBorderY) / (scale * 2);
+                x = (-rightBorderX + leftBorderX) / (2);
+                y = (-bottomBorderY + topBorderY) / (2);
+                sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
             }
             else if (event.type == sf::Event::MouseWheelScrolled)
             {
@@ -375,8 +471,13 @@ namespace at
                             
                             scale += (scale < 0.6) ? 0.06*scale * event.mouseWheelScroll.delta : 0.05 * event.mouseWheelScroll.delta;
                             if (scale < 0.05) scale = 0.05;
-                            circle.setRadius(pointRadius * gs::scale*scale);
-                            circle.setOutlineThickness(gs::scale*scale);
+                            if (scale >= 2.5) {
+                                circle.setRadius(2.5/scale * pointRadius * gs::scale*scale);
+                                circle.setOutlineThickness(2.5/scale * gs::scale*scale);
+                            } else {
+                                circle.setRadius(pointRadius * gs::scale*scale);
+                                circle.setOutlineThickness(gs::scale*scale);
+                            }
                             
                             x -= (gs::width/(gs::scale*scale) - gs::width/(gs::scale*scale) * (scalePrev/scale))/2;
                             y -= (gs::height/(gs::scale*scale) - gs::height/(gs::scale*scale) * (scalePrev/scale))/2;
@@ -385,7 +486,7 @@ namespace at
                             contentUpdateTime = 0.2f;
                         }
                     }
-                    else if (event.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel)
+                    else if (event.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel && sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LControl))
                         x += 6/scale * event.mouseWheelScroll.delta;
                     
                     sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);

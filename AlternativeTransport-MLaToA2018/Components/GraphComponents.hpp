@@ -46,13 +46,14 @@ namespace at
             
             sf::Text text;
             sf::Text info;
-            int info_yy{ 0 }, info_xx{ 0 };
+            int info_yy{ 0 }, button_Graph_xx{ 0 };
             bool fontLoaded{ false };
             
             sf::RectangleShape panelShape;
             bool panelVisible{ true };
             GUIButton button_Algorithm;
             GUIButton button_Action;
+            GUIButton button_Graph;
             
             // TODO: Make it actually work
             bool contentLoaded{ false };
@@ -68,11 +69,13 @@ namespace at
             
             sf::Text weightInfo;
             sf::CircleShape circle;
-            sf::Vertex line[2] =
+            sf::Vertex line[2];/* =  /// Cuz Visual Studio 12 swears when sees that
             {
                 sf::Vertex({0, 0}, sf::Color(255,255,255,140)),
                 sf::Vertex({10, 10}, sf::Color(255,255,255,140))
-            };
+            };*/
+            
+            int move_dx{ 0 }, move_dy{ 0 };
             
             double dijkstraWeight{ std::numeric_limits<double>::infinity() };
             clock_t dijkstraTime{ 0 };
@@ -82,7 +85,7 @@ namespace at
             Graph* graph{ nullptr };
             vector<VertexInfo*> vertexes;
             
-            float pointRadius{ 1 }, scale { 1.f };
+            float pointRadius{ 5 }, scale { 1.f };
             float x{ 0 }, y{ 0 };
             
             GraphMap(Graph* graph);

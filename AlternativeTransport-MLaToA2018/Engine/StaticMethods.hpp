@@ -25,7 +25,7 @@
 
 #include "../Essentials/ResourcePath.hpp"
 #ifdef _WIN32
-    #include "../Essentials/versionhelpers.h"
+    //#include "../Essentials/versionhelpers.h"
 #endif
 #include "../Essentials/Base.hpp"
 

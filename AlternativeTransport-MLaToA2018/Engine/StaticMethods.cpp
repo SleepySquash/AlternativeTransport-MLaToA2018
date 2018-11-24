@@ -72,7 +72,7 @@ namespace at
     float gs::scale = 1.f;
     
 #ifdef _WIN32
-    int gs::windowPositionOffset = IsWindows8OrGreater() ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
+    int gs::windowPositionOffset = 0;//IsWindows8OrGreater() ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
 #else
     int gs::windowPositionOffset = 0;
 #endif

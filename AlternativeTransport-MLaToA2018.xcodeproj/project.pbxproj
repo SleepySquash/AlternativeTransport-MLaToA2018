@@ -60,7 +60,6 @@
 		DD931409219D95DF0078ED75 /* EntitySystem.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EntitySystem.hpp; sourceTree = "<group>"; };
 		DD931410219D96890078ED75 /* StaticMethods.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StaticMethods.cpp; sourceTree = "<group>"; };
 		DD931411219D96890078ED75 /* StaticMethods.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StaticMethods.hpp; sourceTree = "<group>"; };
-		DD931414219D97010078ED75 /* versionhelpers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = versionhelpers.h; sourceTree = "<group>"; };
 		DD931418219F132C0078ED75 /* EssentialComponents.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = EssentialComponents.cpp; sourceTree = "<group>"; };
 		DD931419219F132C0078ED75 /* EssentialComponents.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EssentialComponents.hpp; sourceTree = "<group>"; };
 		DDAB7469215D88050062F8B6 /* macOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = macOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -146,7 +145,6 @@
 				DDAB7470215D88050062F8B6 /* ResourcePath.hpp */,
 				DD931400219D8F410078ED75 /* Base.cpp */,
 				DD931401219D8F410078ED75 /* Base.hpp */,
-				DD931414219D97010078ED75 /* versionhelpers.h */,
 			);
 			path = Essentials;
 			sourceTree = "<group>";

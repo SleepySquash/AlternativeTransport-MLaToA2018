@@ -44,6 +44,7 @@ int main()
     sf::RenderWindow window(sf::VideoMode(sf::VideoMode::getDesktopMode().width >= 1280 ? 1280 : sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height >= 880 ? 800 : sf::VideoMode::getDesktopMode().height - 80), "AlternativeTransport-MLaToA2018", sf::Style::Default, settings);
     #endif
 #endif
+    gs::window = &window;
     gs::width = window.getSize().x;
     gs::height = window.getSize().y;
     
@@ -72,7 +73,6 @@ int main()
     {
         graphmap = Elizabeth->AddComponent<GraphComponents::GraphMap>(&graph);
     }
-    //graphmap->Save(utf16(resourcePath()) + L"Data/out.txt");
     
     ///----------------------------------------------------------
     /// \brief Entity to hold essential components
@@ -130,7 +130,7 @@ int main()
                             graphmap->Load(utf16(resourcePath()) + L"Data/out.txt");
                             break;
                         case sf::Keyboard::K:
-                            graphmap->Save(utf16(resourcePath()) + L"Data/out.txt");
+                            graphmap->Save(graph.filePath);
                             break;
                         default:
                             break;
