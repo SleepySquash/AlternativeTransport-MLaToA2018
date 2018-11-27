@@ -701,7 +701,7 @@ namespace at
                 {
                     if (event.mouseWheelScroll.wheel == sf::Mouse::VerticalWheel)
                     {
-                        if (sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+                        if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
                             y += 6/scale * event.mouseWheelScroll.delta;
                         else
                         {
@@ -724,7 +724,7 @@ namespace at
                             contentUpdateTime = 0.2f;
                         }
                     }
-                    else if (event.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel && sf::Keyboard::Keyboard::isKeyPressed(sf::Keyboard::LControl))
+                    else if (event.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel && sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
                         x += 6/scale * event.mouseWheelScroll.delta;
                     
                     sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
