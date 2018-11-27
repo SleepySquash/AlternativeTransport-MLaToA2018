@@ -10,7 +10,7 @@
 
 namespace at
 {
-    Vertex::~Vertex() { for (int i = 0; i < edges.size(); ++i) { delete edges[i]; edges[i] = nullptr; } }
+    Vertex::~Vertex() { for (int i = 0; i < edges.size(); ++i) { delete edges[i]; edges[i] = nullptr; } delete data; }
     void Vertex::Link(Vertex* to, double weight, bool out, bool in) { edges.push_back(new Edge(to, weight, out, in)); }
     void Vertex::Sync(Vertex* to, double weight, bool out, bool in)
     {
@@ -85,7 +85,7 @@ namespace at
     #endif
         wif.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
         
-        dijkstraShortestPath.clear();
+        shortestPath.clear();
         if ((loaded = wif.is_open()))
         {
             filePath = filename;
@@ -195,32 +195,300 @@ namespace at
         loaded = false;
         filePath = L"";
     }
-    double Graph::Dijkstra(Vertex* s, Vertex* t)
+    struct PairByDistanceComparator { int operator() (const pair<double, Vertex*>& p1, const pair<double, Vertex*>& p2) { return p1.first > p2.first; } };
+    
+    
+    
+    void Graph::SlowDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index)
     {
-        dijkstraShortestPath.clear();
+        switch (mode)
+        {
+            case 0:
+                for (auto v : vertexes)
+                {
+                    if (v->data != nullptr)
+                        delete v->data;
+                    v->data = new DijkstraHolder();
+                }
+                break;
+            case 1:
+                vertexes.back()->data = new DijkstraHolder();
+                break;
+            default: break;
+        }
+    }
+    double Graph::SlowDijkstra(unsigned long si, unsigned long ti)
+    {
+        Vertex* s = vertexes[si];
+        Vertex* t = vertexes[ti];
+        
         for (auto v : vertexes) {
-            v->dijkstraOut = false;
-            v->dijkstraWeight = std::numeric_limits<double>::infinity();
-            v->dijkstraPrevious = nullptr;}
+            DijkstraHolder* data = reinterpret_cast<DijkstraHolder*>(v->data);
+            data->out = false;
+            data->weight = std::numeric_limits<double>::infinity(); }
+        DijkstraHolder* s_data = reinterpret_cast<DijkstraHolder*>(s->data);
+        DijkstraHolder* t_data = reinterpret_cast<DijkstraHolder*>(t->data);
+        s_data->previous = nullptr;
+        t_data->previous = nullptr;
+        
         vector<Vertex*> stack;
-        s->dijkstraWeight = 0;
+        s_data->weight = 0;
         stack.push_back(s);
         
         while (!stack.empty())
         {
-            // Ищем вершину с минимальным весом, её обрабатываем первой (эвристика Дейкстры)
-            // TODO: Use binary tree (std::set)
             double min = std::numeric_limits<double>::infinity();
             unsigned long beg = 0;
             for (int i = 0; i < stack.size(); ++i)
-                if (min > stack[i]->dijkstraWeight)
+            {
+                DijkstraHolder* data = reinterpret_cast<DijkstraHolder*>(stack[i]);
+                if (min > data->weight)
                 {
                     beg = i;
-                    min = stack[i]->dijkstraWeight;
+                    min = data->weight;
                 }
+            }
             Vertex* current = stack[beg];
+            DijkstraHolder* data = reinterpret_cast<DijkstraHolder*>(current->data);
             
-            // Каждой соединённой с нынешней вершиной вершине ищем "новые" минимальные расстояния
+            for (auto e : *current)
+            {
+                DijkstraHolder* to_data = reinterpret_cast<DijkstraHolder*>(e->to->data);
+                if (e->out && !to_data->out)
+                {
+                    if (to_data->weight > data->weight + e->weight)
+                    {
+                        to_data->weight = data->weight + e->weight;
+                        to_data->previous = current;
+                        if (e->to != t) stack.push_back(e->to);
+                    }
+                }
+            }
+            data->out = true;
+            stack.erase(stack.begin() + beg);
+        }
+        
+        if (t_data->weight != 0 && t_data->weight != std::numeric_limits<double>::infinity())
+        {
+            Vertex* current = t;
+            while (current != nullptr)
+            {
+                shortestPath.insert(shortestPath.begin(), current);
+                current = reinterpret_cast<DijkstraHolder*>(current->data)->previous;
+            }
+        }
+        
+        return t_data->weight;
+    }
+    void Graph::SlowDijkstra_Destroy()
+    {
+        cout << "D Unload" << endl;
+        for (auto v : vertexes)
+        {
+            if (v->data != nullptr)
+                delete v->data;
+            v->data = nullptr;
+        }
+    }
+    
+    
+    
+    void Graph::DijkstraPreprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index)
+    {
+        switch (mode) {
+            case 0:
+                for (auto v : vertexes)
+                {
+                    if (v->data != nullptr)
+                        delete v->data;
+                    v->data = new DijkstraHolder();
+                }
+                break;
+            case 1:
+                vertexes.back()->data = new DijkstraHolder();
+                break;
+            default: break;
+        }
+    }
+    double Graph::Dijkstra(unsigned long si, unsigned long ti)
+    {
+        Vertex* s = vertexes[si];
+        Vertex* t = vertexes[ti];
+        
+        for (auto v : vertexes) {
+            DijkstraHolder* data = reinterpret_cast<DijkstraHolder*>(v->data);
+            data->out = false;
+            data->weight = std::numeric_limits<double>::infinity(); }
+        DijkstraHolder* s_data = reinterpret_cast<DijkstraHolder*>(s->data);
+        DijkstraHolder* t_data = reinterpret_cast<DijkstraHolder*>(t->data);
+        s_data->previous = nullptr;
+        t_data->previous = nullptr;
+        
+        priority_queue<pair<double, Vertex*>, vector<pair<double, Vertex*>>, PairByDistanceComparator> stack;
+        s_data->weight = 0;
+        stack.push(make_pair(0, s));
+        
+        while (!stack.empty())
+        {
+            Vertex* current = stack.top().second;
+            DijkstraHolder* data = reinterpret_cast<DijkstraHolder*>(current->data);
+            stack.pop();
+            
+            for (auto e : *current)
+            {
+                DijkstraHolder* to_data = reinterpret_cast<DijkstraHolder*>(e->to->data);
+                if (e->out && !to_data->out)
+                {
+                    if (to_data->weight > data->weight + e->weight)
+                    {
+                        to_data->weight = data->weight + e->weight;
+                        to_data->previous = current;
+                        if (e->to != t) stack.push(make_pair(to_data->weight, e->to));
+                    }
+                }
+            }
+            data->out = true;
+        }
+        if (t_data->weight != 0 && t_data->weight != std::numeric_limits<double>::infinity())
+        {
+            Vertex* current = t;
+            while (current != nullptr)
+            {
+                shortestPath.insert(shortestPath.begin(), current);
+                current = reinterpret_cast<DijkstraHolder*>(current->data)->previous;
+            }
+        }
+        
+        return t_data->weight;
+    }
+    void Graph::DijkstraDestroy()
+    {
+        for (auto v : vertexes) {
+            if (v->data != nullptr) delete v->data;
+            v->data = nullptr;
+        }
+    }
+    
+    
+    
+    void Graph::ExternalDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index)
+    {
+        cout << "D Preproc: " << mode << "  vertex: " << vertex << "  edge: " << edge << "  index: " << index << endl;
+        switch (mode)
+        {
+            case 0:
+                dijkstraOData.clear();
+                dijkstraOData.resize(vertexes.size());
+                dijkstraOMap.reserve(vertexes.size());
+                for (unsigned long i = 0; i < vertexes.size(); ++i)
+                {
+                    dijkstraOData[i] = DijkstraOptimizedData();
+                    dijkstraOMap[vertexes[i]] = &(dijkstraOData[i]);
+                }
+                break;
+                
+            case 1:
+                dijkstraOData.push_back(DijkstraOptimizedData());
+                dijkstraOMap.insert({vertexes[index], &(dijkstraOData[index])});
+                break;
+                
+            case 2:
+                break;
+                
+            case 3:
+                dijkstraOData.erase(dijkstraOData.begin() + index);
+                dijkstraOMap.erase(vertex);
+                break;
+        }
+    }
+    double Graph::ExternalDijkstra(unsigned long s, unsigned long t)
+    {
+        for (unsigned long i = 0; i < vertexes.size(); ++i) {
+            dijkstraOData[i].weight = std::numeric_limits<double>::infinity();
+            dijkstraOData[i].out = false; }
+        dijkstraOData[s].previous = nullptr;
+        dijkstraOData[t].previous = nullptr;
+        
+        priority_queue<pair<double, Vertex*>, vector<pair<double, Vertex*>>, PairByDistanceComparator> stack;
+        dijkstraOData[s].weight = 0;
+        stack.push(make_pair(0, vertexes[s]));
+        
+        while (!stack.empty())
+        {
+            Vertex* current = stack.top().second;
+            stack.pop();
+            
+            for (auto e : *current)
+                if (e->out && !(*dijkstraOMap[e->to]).out)
+                {
+                    if ((*dijkstraOMap[e->to]).weight > (*dijkstraOMap[current]).weight + e->weight)
+                    {
+                        (*dijkstraOMap[e->to]).weight = (*dijkstraOMap[current]).weight + e->weight;
+                        (*dijkstraOMap[e->to]).previous = current;
+                        if (e->to != vertexes[t]) stack.push(make_pair((*dijkstraOMap[e->to]).weight, e->to));
+                    }
+                }
+            (*dijkstraOMap[current]).out = true;
+        }
+        if (dijkstraOData[t].weight != 0 && dijkstraOData[t].weight != std::numeric_limits<double>::infinity())
+        {
+            Vertex* current = vertexes[t];
+            while (current != nullptr)
+            {
+                shortestPath.insert(shortestPath.begin(), current);
+                current = (*dijkstraOMap[current]).previous;
+            }
+        }
+        
+        return dijkstraOData[t].weight;
+    }
+    void Graph::ExternalDijkstra_Unload()
+    {
+        cout << "D Unload" << endl;
+        dijkstraOData.clear();
+        dijkstraOMap.clear();
+    }
+    
+    
+    
+    void Graph::TableLookup_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index)
+    {
+        cout << "TL Preproc: " << mode << "  vertex: " << vertex << "  edge: " << edge << "  index: " << index << endl;
+    }
+    double Graph::TableLookup(unsigned long s, unsigned long t)
+    {
+        return 321;
+    }
+    void Graph::TableLookup_Unload()
+    {
+        cout << "TL Unload" << endl;
+    }
+    
+    
+    
+    
+    
+    
+    /*double Graph::Dijkstra(unsigned long si, unsigned long ti)
+    {
+        Vertex* s = vertexes[si];
+        Vertex* t = vertexes[ti];
+        
+        for (auto v : vertexes) {
+            v->dijkstraOut = false;
+            v->dijkstraWeight = std::numeric_limits<double>::infinity(); }
+        s->dijkstraPrevious = nullptr;
+        t->dijkstraPrevious = nullptr;
+        
+        priority_queue<pair<double, Vertex*>, vector<pair<double, Vertex*>>, PairByDistanceComparator> stack;
+        s->dijkstraWeight = 0;
+        stack.push(make_pair(0, s));
+        
+        while (!stack.empty())
+        {
+            Vertex* current = stack.top().second;
+            stack.pop();
+            
             for (auto e : *current)
                 if (e->out && !e->to->dijkstraOut)
                 {
@@ -228,27 +496,22 @@ namespace at
                     {
                         e->to->dijkstraWeight = current->dijkstraWeight + e->weight;
                         e->to->dijkstraPrevious = current;
+                        if (e->to != t) stack.push(make_pair(e->to->dijkstraWeight, e->to));
                     }
-                    if (e->to != t) stack.push_back(e->to);
                 }
             current->dijkstraOut = true;
-            stack.erase(stack.begin() + beg);
-            
-            // TODO: прекращение работы Дейкстры, если уже нашли мин. расстояние до (t)arget
-            //       if (current == s) done = true; ?
         }
         
-        // Кратчайший путь
-        if (t->dijkstraWeight != 0)
+        if (t->dijkstraWeight != 0 && t->dijkstraWeight != std::numeric_limits<double>::infinity())
         {
             Vertex* current = t;
             while (current != nullptr)
             {
-                dijkstraShortestPath.insert(dijkstraShortestPath.begin(), current);
+                shortestPath.insert(shortestPath.begin(), current);
                 current = current->dijkstraPrevious;
             }
         }
         
         return t->dijkstraWeight;
-    }
+    }*/
 }

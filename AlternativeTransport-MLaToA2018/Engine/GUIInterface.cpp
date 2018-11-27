@@ -17,7 +17,7 @@ namespace at
     }
     void GUIButton::Update(const sf::Time &elapsedTime)
     {
-        if (pressedAfterColor)
+        /*if (pressedAfterColor)
         {
             pressedAfterColor -= elapsedTime.asSeconds();
             if (pressedAfterColor <= 0)
@@ -25,7 +25,7 @@ namespace at
                 text.setFillColor(sf::Color::White);
                 pressedAfterColor = 0.f;
             }
-        }
+        }*/
     }
     void GUIButton::Draw(sf::RenderTarget* window)
     {
@@ -50,8 +50,8 @@ namespace at
         if (isPressed)
         {
             isPressed = false;
-            pressedAfterColor = 0.1f;
-            text.setFillColor(sf::Color::Red);
+            //pressedAfterColor = 0.1f;
+            //text.setFillColor(sf::Color::Red);
             return true;
         }
         return false;
@@ -91,5 +91,10 @@ namespace at
     void GUIButton::SetString(const std::wstring& string)
     {
         text.setString(string);
+    }
+    void GUIButton::SetCharacterSize(const unsigned int size)
+    {
+        characterSize = size;
+        text.setCharacterSize(size * gs::scale);
     }
 }

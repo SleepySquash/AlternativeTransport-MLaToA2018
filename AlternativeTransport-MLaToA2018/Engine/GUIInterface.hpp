@@ -42,6 +42,7 @@ namespace at
         void SetPosition(float x, float y);
         void SetFont(const std::wstring& fontname);
         void SetString(const std::wstring& string);
+        void SetCharacterSize(const unsigned int size);
     };
 }
 

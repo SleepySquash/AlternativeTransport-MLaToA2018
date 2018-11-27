@@ -43,6 +43,7 @@ namespace at
         {
         private:
             VertexInfo* source{ nullptr };
+            unsigned long sourcei{ 0 };
             
             sf::Text text;
             sf::Text info;
@@ -53,6 +54,7 @@ namespace at
             bool panelVisible{ true };
             GUIButton button_Algorithm;
             GUIButton button_Action;
+            GUIButton button_DoPreprocessing;
             GUIButton button_Graph;
             
             // TODO: Make it actually work
@@ -75,10 +77,21 @@ namespace at
                 sf::Vertex({10, 10}, sf::Color(255,255,255,140))
             };*/
             
+            enum class screenEnum { main, choosing_algorithm };
+            screenEnum screen = screenEnum::main;
+            unsigned long algorithmIndex{ 0 };
+            vector<std::tuple<std::wstring, std::function<void(unsigned int, Vertex*, Edge*, unsigned long)>, bool, std::function<double(unsigned long, unsigned long)>, std::function<void()>>> algorithms;
+            
             int move_dx{ 0 }, move_dy{ 0 };
             
-            double dijkstraWeight{ std::numeric_limits<double>::infinity() };
-            clock_t dijkstraTime{ 0 };
+            double distance{ std::numeric_limits<double>::infinity() };
+            double speed{ 0 };
+            double time{ 0 };
+            
+            clock_t clockRuntime{ 0 };
+            clock_t clockPretime{ 0 };
+            bool needsPreprocessing{ false };
+            
             float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
             
         public:

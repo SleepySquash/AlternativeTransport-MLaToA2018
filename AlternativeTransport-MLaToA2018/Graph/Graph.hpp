@@ -10,16 +10,27 @@
 #define Graph_hpp
 
 #include <iostream>
-#include <vector>
 #include <fstream>
 #include <algorithm>
+
+#include <vector>
+#include <deque>
+#include <unordered_map>
+#include <queue>
 
 #include "../Essentials/Base.hpp"
 
 using std::cin;
 using std::cout;
 using std::endl;
+
 using std::vector;
+using std::deque;
+using std::unordered_map;
+using std::priority_queue;
+
+using std::pair;
+using std::make_pair;
 
 namespace at
 {
@@ -43,13 +54,19 @@ namespace at
         friend class Graph;
     };
 
+    struct DataHolder { };
+    struct DijkstraHolder : DataHolder
+    {
+        double weight{ 0 };
+        bool out{ false };
+        Vertex* previous{ nullptr };
+    };
+    
     struct Vertex
     {
         vector<Edge*> edges; // max amount of edges = 18.446.744.073.709.551.615 (~2 * 10^19)
         GraphComponents::VertexInfo* vertexinfo{ nullptr };
-        double dijkstraWeight{ std::numeric_limits<double>::infinity() };
-        Vertex* dijkstraPrevious{ nullptr };
-        bool dijkstraOut{ false };
+        DataHolder* data{ nullptr };
         
         ~Vertex();
         void Link(Vertex* to, double weight, bool out = true, bool in = true);
@@ -65,12 +82,20 @@ namespace at
         friend class Graph;
     };
 
+    struct DijkstraOptimizedData
+    {
+        double weight;
+        bool out;
+        Vertex* previous;
+        
+        DijkstraOptimizedData() : weight(std::numeric_limits<double>::infinity()), out(false), previous(nullptr) { }
+    };
     struct Graph
     {
         vector<Vertex*> vertexes; // max amount of vertexes = 18.446.744.073.709.551.615 (~2 * 10^19)
-        vector<Vertex*> dijkstraShortestPath;
+        vector<Vertex*> shortestPath;
         
-        std::wstring filePath{ L"" };
+        std::wstring filePath = L"";
         bool loaded{ false };
         
         ~Graph();
@@ -83,7 +108,29 @@ namespace at
         void Load(const std::wstring& filename);
         void Save(const std::wstring& filename);
         void Clear();
-        double Dijkstra(Vertex* s, Vertex* t);
+        
+        
+        void SlowDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double SlowDijkstra(unsigned long si, unsigned long ti);
+        void SlowDijkstra_Destroy();
+        
+        
+        void DijkstraPreprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double Dijkstra(unsigned long si, unsigned long ti);
+        void DijkstraDestroy();
+        
+        
+        deque<DijkstraOptimizedData> dijkstraOData;
+        unordered_map<Vertex*, DijkstraOptimizedData*> dijkstraOMap;
+        void ExternalDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double ExternalDijkstra(unsigned long si, unsigned long ti);
+        void ExternalDijkstra_Unload();
+        
+        
+        void TableLookup_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double TableLookup(unsigned long si, unsigned long ti);
+        void TableLookup_Unload();
+        
         
         inline std::vector<Vertex*>::iterator begin() { return vertexes.begin(); }
         inline std::vector<Vertex*>::const_iterator cbegin() const { return vertexes.cbegin(); }

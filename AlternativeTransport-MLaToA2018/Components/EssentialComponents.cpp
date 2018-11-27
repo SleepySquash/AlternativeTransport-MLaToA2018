@@ -51,7 +51,7 @@ namespace at
                 perfString += std::to_wstring(frames);
                 
                 performanceText.setString(perfString);
-                performanceText.setPosition(gs::width - performanceText.getLocalBounds().width - 10*gs::scale, performanceText.getPosition().y);
+                //performanceText.setPosition(gs::width - performanceText.getLocalBounds().width - 10*gs::scale, performanceText.getPosition().y);
                 
                 deltaTime = sf::Time::Zero;
                 frames = 0;

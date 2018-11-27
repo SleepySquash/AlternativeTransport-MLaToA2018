@@ -25,7 +25,18 @@
 #include "Components/EssentialComponents.hpp"
 #include "Components/GraphComponents.hpp"
 
+#include <thread>
+
 using namespace at;
+
+void DrawInParallel(sf::RenderWindow* window, EntitySystem* system)
+{
+    window->setActive();
+    
+    window->clear();
+    system->Draw(window);
+    window->display();
+}
 
 int main()
 {
@@ -88,7 +99,7 @@ int main()
     
     
     sf::Clock clock;
-    window.setActive();
+    window.setActive(false);
     while (window.isOpen())
     {
         sf::Event event;
@@ -153,11 +164,13 @@ int main()
             }
         }
         
+        std::thread drawThread(DrawInParallel, &window, &system);
         system.Update(clock.restart());
+        drawThread.join();
         
-        window.clear();
+        /*window.clear();
         system.Draw(&window);
-        window.display();
+        window.display();*/
     }
 
     system.Destroy();
