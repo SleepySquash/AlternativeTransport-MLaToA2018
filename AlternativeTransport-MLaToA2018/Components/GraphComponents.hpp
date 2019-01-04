@@ -16,6 +16,7 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 
+#include "../Essentials/Base.hpp"
 #include "../Engine/EntitySystem.hpp"
 #include "../Engine/StaticMethods.hpp"
 #include "../Engine/GUIInterface.hpp"
@@ -67,7 +68,7 @@ namespace at
             sf::Image image;
             sf::Texture texture;
             sf::Sprite sprite;
-            float imageScale = 1.f;
+            float imageScale = 1.f / 1.4656;
             
             sf::Text weightInfo;
             sf::CircleShape circle;
@@ -94,12 +95,25 @@ namespace at
             
             float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
             
+            sf::RenderTexture zones;
+            sf::Sprite zonesSprite;
+            int currentPosZoneX{ 0 }, currentPosZoneY{ 0 }, lastPosZoneX{ 0 }, lastPosZoneY{ 0 };
+            
+            sf::Color zonesImageLoadingClr{ sf::Color::Black };
+            sf::Color zonesZoneShiftClr{ sf::Color::Black };
+            
         public:
             Graph* graph{ nullptr };
             vector<VertexInfo*> vertexes;
             
+            //std::unordered_map<std::pair<int, int>, std::pair<sf::Texture, sf::Sprite>> sectors;
+            bool zonesOn{ false };
+            bool zoneResized{ true };
+            unsigned char zoneNumberDetailized{ 0 };
+            int zoneCountX{ 0 }, zoneCountY{ 0 }, lzoneCountX{ 0 }, lzoneCountY{ 0 };
+            int zone{ 64 }, sectorx1{ 0 }, sectory1{ 0 };
             float pointRadius{ 5 }, scale { 1.f };
-            float x{ 0 }, y{ 0 };
+            float x{ 0 }, y{ 0 }, xright{ 0 }, ybottom{ 0 };
             
             GraphMap(Graph* graph);
             void Init() override;
@@ -114,6 +128,10 @@ namespace at
             void Load(const std::wstring& filename);
             void Save(const std::wstring& filename);
             void Clear();
+            void LoadZoneImage(const std::wstring& fullPath, const int& i, const int& j);
+            void DoZones();
+            void ZonesResize(unsigned int width, unsigned int height);
+            void ChangeZonesPosition();
             
             void Draw1(sf::RenderWindow* window);
             void DrawContent1();

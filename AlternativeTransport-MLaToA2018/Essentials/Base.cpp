@@ -58,3 +58,14 @@ std::wstring utf16(const std::string& str)
 		return wcurrent_working_dir + L'\\';
 	}
 #endif
+bool FileExists(const std::wstring& path)
+{
+#ifdef _WIN32
+    return _waccess_s(path.c_str(), 0) == 0;
+#else
+    struct stat buffer;
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    std::string u8str = converter.to_bytes(path);
+    return (stat (u8str.c_str(), &buffer) == 0);
+#endif
+}

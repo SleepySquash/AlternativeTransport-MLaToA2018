@@ -48,7 +48,8 @@ namespace at
         
         bool savingCompleted{ false };
         
-        Edge(Vertex* to, double weight, bool out = true, bool in = true) : to(to), weight(weight), out(out), in(in) { }
+        Edge(Vertex* to, double weight, bool out = true, bool in = true) :
+             to(to), weight(weight), out(out), in(in) { }
         
         friend class Vertex;
         friend class Graph;
@@ -64,7 +65,8 @@ namespace at
     
     struct Vertex
     {
-        vector<Edge*> edges; // max amount of edges = 18.446.744.073.709.551.615 (~2 * 10^19)
+        // max amount of edges = 18.446.744.073.709.551.615 (~2 * 10^19)
+        vector<Edge*> edges;
         GraphComponents::VertexInfo* vertexinfo{ nullptr };
         DataHolder* data{ nullptr };
         
@@ -92,7 +94,8 @@ namespace at
     };
     struct Graph
     {
-        vector<Vertex*> vertexes; // max amount of vertexes = 18.446.744.073.709.551.615 (~2 * 10^19)
+        // max amount of vertices = 18.446.744.073.709.551.615 (~2 * 10^19)
+        vector<Vertex*> vertices;
         vector<Vertex*> shortestPath;
         
         std::wstring filePath = L"";
@@ -132,10 +135,10 @@ namespace at
         void TableLookup_Unload();
         
         
-        inline std::vector<Vertex*>::iterator begin() { return vertexes.begin(); }
-        inline std::vector<Vertex*>::const_iterator cbegin() const { return vertexes.cbegin(); }
-        inline std::vector<Vertex*>::iterator end() { return vertexes.end(); }
-        inline std::vector<Vertex*>::const_iterator cend() const { return vertexes.cend(); }
+        inline std::vector<Vertex*>::iterator begin() { return vertices.begin(); }
+        inline std::vector<Vertex*>::const_iterator cbegin() const { return vertices.cbegin(); }
+        inline std::vector<Vertex*>::iterator end() { return vertices.end(); }
+        inline std::vector<Vertex*>::const_iterator cend() const { return vertices.cend(); }
         
         friend class Edge;
         friend class Vertex;

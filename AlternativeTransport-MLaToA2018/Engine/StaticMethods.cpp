@@ -70,6 +70,7 @@ namespace at
     unsigned int gs::width = 0;
     unsigned int gs::height = 0;
     float gs::scale = 1.f;
+    float gs::zoneScale = 1.f;
     
 #ifdef _WIN32
     int gs::windowPositionOffset = 0;//IsWindows8OrGreater() ? GetSystemMetrics(SM_CXSIZEFRAME) : 0;
@@ -79,7 +80,7 @@ namespace at
     
     bool gs::isVerticalSyncEnabled = true;
     int gs::framerateLimit = 120;
-    int gs::framerateNoFocus = 30;
+    int gs::framerateNoFocus = 10;
     
     gs::algorithmEnum gs::algorithm = algorithmEnum::Dijkstra;
     

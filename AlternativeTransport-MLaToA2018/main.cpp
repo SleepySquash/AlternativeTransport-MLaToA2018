@@ -110,6 +110,14 @@ int main()
                 case sf::Event::Closed:
                     window.close();
                     break;
+                    
+                case sf::Event::GainedFocus:
+                    window.setFramerateLimit(gs::framerateLimit);
+                    break;
+                    
+                case sf::Event::LostFocus:
+                    window.setFramerateLimit(gs::framerateNoFocus);
+                    break;
 
                 case sf::Event::MouseButtonPressed:
                     system.PollEvent(event);

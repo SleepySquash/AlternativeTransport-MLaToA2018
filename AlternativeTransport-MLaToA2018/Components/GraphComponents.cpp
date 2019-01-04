@@ -136,57 +136,327 @@ namespace at
             {
                 x = move_dx + sf::Mouse::getPosition(*gs::window).x/(scale*gs::scale);
                 y = move_dy + sf::Mouse::getPosition(*gs::window).y/(scale*gs::scale);
+                xright = -x + gs::width/(gs::scale*scale);
+                ybottom = -y + gs::height/(gs::scale*scale);
                 sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
+                
+                ChangeZonesPosition();
+            }
+        }
+        template <typename T> int sgn(T val) {
+            return (T(0) < val) - (val < T(0));
+        }
+        void GraphMap::LoadZoneImage(const std::wstring& fullPath, const int& i, const int& j)
+        {
+            if (FileExists(fullPath))
+            {
+                sf::Texture zoneTexture;
+                bool imageLoaded = false;
+#ifdef _WIN32
+                std::ifstream ifStream(fullPath, std::ios::binary | std::ios::ate);
+                if (ifStream.is_open())
+                {
+                    auto filesize = ifStream.tellg();
+                    char* fileInMemory = new char[static_cast<unsigned int>(filesize)];
+                    ifStream.seekg(0, std::ios::beg);
+                    ifStream.read(fileInMemory, filesize);
+                    ifStream.close();
+                    
+                    imageLoaded = zoneTexture.loadFromMemory(fileInMemory, filesize);
+                    delete[] fileInMemory;
+                }
+#else
+                imageLoaded = zoneTexture.loadFromFile(utf8(fullPath));
+#endif
+                
+                if (imageLoaded)
+                {
+                    float zonesize = gs::width/(4*gs::scale) * gs::zoneScale;
+                    int leftupZoneX = floor(-(x/zone));
+                    int leftupZoneY = floor(-(y/zone));
+                    
+                    sf::Sprite zoneSprite(zoneTexture);
+                    zoneSprite.setScale((zonesize)/zoneSprite.getLocalBounds().width,
+                                        (zonesize)/zoneSprite.getLocalBounds().height);
+                    zoneSprite.setPosition((i - leftupZoneX) * zonesize,
+                                           (j - leftupZoneY) * zonesize);
+                    //cout << i << " " << j << "  " << i - leftupZoneX << " " << j - leftupZoneY << "  " << zoneSprite.getPosition().x << " " << zoneSprite.getPosition().y << "  " << zoneSprite.getScale().x << " " << zoneSprite.getScale().y << "   " << utf8(fullPath) << endl;
+                    zones.draw(zoneSprite);
+                    zones.display();
+                    
+                    /*sf::Text texx;
+                     texx.setFont(*fc::GetFont(L"Arial.ttf"));
+                     texx.setString(sf::String(std::to_wstring(int( (i - leftupZoneX) * zonesize )) + L" " + std::to_wstring(int( (j - leftupZoneY) * zonesize ))));
+                     texx.setCharacterSize(36);
+                     texx.setPosition((i - leftupZoneX) * zonesize, (j - leftupZoneY) * zonesize);
+                     //cout << (i - leftupZoneX) * zzzone << "  " << (j - leftupZoneY) * zzzone << endl;
+                     zones.draw(texx);*/
+                }
+            }
+        }
+        void GraphMap::DoZones()
+        {
+            if (zonesOn)
+            {
+                int lzone = zone;
+                zone = (int)(gs::width/(scale*gs::scale*4));
+                
+                if (zone & 32768) zone = 32768;         //11
+                else if (zone & 16384) zone = 16384;    //10
+                else if (zone & 8192) zone = 8192;      // 9
+                else if (zone & 4096) zone = 4096;      // 8
+                else if (zone & 2048) zone = 2048;      // 7
+                else if (zone & 1024) zone = 1024;      // 6
+                else if (zone & 512) zone = 512;        // 5
+                else if (zone & 256) zone = 256;        // 4
+                else if (zone & 128) zone = 128;        // 3
+                else if (zone & 64) zone = 64;          // 2
+                else if (zone & 32) zone = 32;          // 1
+                else zone = 16;                         // 0
+                
+                if (lzone != zone)
+                {
+                    switch (zone)
+                    {
+                        case 32768: zoneNumberDetailized = 10; break;
+                        case 16384: zoneNumberDetailized = 10; break;
+                        case 8192: zoneNumberDetailized = 9; break;
+                        case 4096: zoneNumberDetailized = 8; break;
+                        case 2048: zoneNumberDetailized = 7; break;
+                        case 1024: zoneNumberDetailized = 6; break;
+                        case 512: zoneNumberDetailized = 5; break;
+                        case 256: zoneNumberDetailized = 4; break;
+                        case 128: zoneNumberDetailized = 3; break;
+                        case 64: zoneNumberDetailized = 2; break;
+                        case 32: zoneNumberDetailized = 1; break;
+                        case 16: zoneNumberDetailized = 0; break;
+                        default: zoneNumberDetailized = 0; break;
+                    }
+                }
+                if (zoneResized)
+                {
+                    float realZone = (gs::width/(scale*gs::scale*4));
+                    float curZoneWidth = gs::width/(scale*gs::scale) * zone/realZone;
+                    float curZoneHeight = gs::height/(scale*gs::scale) * zone/realZone;
+                    float sectorCountX = (2*curZoneWidth)/zone + 1;
+                    float sectorCountY = (2*curZoneHeight)/zone + 1;
+                    if (sectorCountY - (int)sectorCountY >= 0.5) sectorCountY += 1;
+                    
+                    zoneCountX = sectorCountX;
+                    zoneCountY = sectorCountY;
+                    cout << "zoneResized!!! = (" << zoneCountX << ", " << zoneCountY << ")" << endl;
+                    
+                    zoneResized = false;
+                }
+                if (lzone != zone || lzoneCountX != zoneCountX || lzoneCountY != zoneCountY)
+                {
+                    lastPosZoneX = currentPosZoneX = floor(-(x/zone));
+                    lastPosZoneY = currentPosZoneY = floor(-(y/zone));
+                    
+                    float zonesize = gs::width/(4*gs::scale) * gs::zoneScale;
+                    
+                    //float zoneun = (2*gs::width/gs::scale) /( (2* gs::width/(scale*gs::scale) * zone/realZone )/zone );
+                    //cout << zoneun << "  " << scale * realZone << "  " << gs::width/(4*gs::scale) << endl;
+                    
+                    if (lzoneCountX != zoneCountX || lzoneCountY != zoneCountY) {
+                        zones.create((zoneCountX + 1)*zonesize, (zoneCountY + 1)*zonesize);
+                        zonesSprite.setTexture(zones.getTexture()); }
+                    zones.clear(zonesImageLoadingClr);
+                    zones.display();
+                    
+                    int leftupZoneX = floor(-(x/zone));
+                    int leftupZoneY = floor(-(y/zone));
+                    //if (x > 0) leftupZoneX = floor(-x/zone); else leftupZoneX = floor(-x/zone);
+                    //if (y > 0) leftupZoneY = floor(-y/zone); else leftupZoneY = floor(-y/zone);
+                    cout << "CALLED leftup zone: " << leftupZoneX << " " << leftupZoneY << endl;
+                    
+                    std::wstring zoneString = utf16(resourcePath()) + L"Data/Images/" + std::to_wstring(zoneNumberDetailized) + L" ";
+                    for (int i = leftupZoneX; i < leftupZoneX + zoneCountX; ++i)
+                        for (int j = leftupZoneY; j < leftupZoneY + zoneCountY; ++j)
+                        {
+                            std::wstring fullPath = zoneString + std::to_wstring(i) + L"-" + std::to_wstring(j) + L".jpg";
+                            LoadZoneImage(fullPath, i, j);
+                        }
+                    //zones.display();
+                    
+                    /*sf::Text texx;
+                    texx.setFont(*fc::GetFont(L"Arial.ttf"));
+                    texx.setCharacterSize(36);
+                    for (int i = leftupZoneX; i < leftupZoneX + zoneCountX; ++i)
+                        for (int j = leftupZoneY; j < leftupZoneY + zoneCountY; ++j)
+                        {
+                            texx.setString(sf::String(std::to_wstring(int( (i - leftupZoneX) * zonesize )) + L" " + std::to_wstring(int( (j - leftupZoneY) * zonesize ))));
+                            texx.setPosition((i - leftupZoneX) * zonesize, (j - leftupZoneY) * zonesize);
+                            //zones.draw(texx);
+                            zones.display();
+                        }*/
+                    //zones.display();
+                    
+                    lzoneCountX = zoneCountX;
+                    lzoneCountY = zoneCountY;
+                }
+            }
+        }
+        void GraphMap::ChangeZonesPosition()
+        {
+            if (zonesOn)
+            {
+                currentPosZoneX = floor(-(x/zone));
+                currentPosZoneY = floor(-(y/zone));
+                if (lastPosZoneX != currentPosZoneX || lastPosZoneY != currentPosZoneY)
+                {
+                    sf::Texture textur = zones.getTexture();
+                    sf::Sprite spr(textur);
+                    
+                    float zonesize = gs::width/(4*gs::scale);
+                    spr.setPosition(zonesize * (lastPosZoneX - currentPosZoneX), zonesize * (lastPosZoneY - currentPosZoneY));
+                    
+                    zones.clear(zonesZoneShiftClr);
+                    zones.draw(spr);
+                    
+                    int leftupZoneX = currentPosZoneX;
+                    int leftupZoneY = currentPosZoneY;
+                    
+                    std::wstring zoneString = utf16(resourcePath()) + L"Data/Images/" + std::to_wstring(zoneNumberDetailized) + L" ";
+                    if (currentPosZoneX - lastPosZoneX > 0)
+                    {
+                        // Правую границу грузим
+                        for (int i = leftupZoneX + zoneCountX - 1; i > leftupZoneX + zoneCountX - 1 - (currentPosZoneX - lastPosZoneX); --i)
+                            for (int j = leftupZoneY; j < leftupZoneY + zoneCountY; ++j)
+                            {
+                                std::wstring fullPath = zoneString + std::to_wstring(i) + L"-" + std::to_wstring(j) + L".jpg";
+                                LoadZoneImage(fullPath, i, j);
+                            }
+                    }
+                    else if (currentPosZoneX - lastPosZoneX < 0)
+                    {
+                        // Левую границу грузим
+                        for (int i = leftupZoneX; i < leftupZoneX - (currentPosZoneX - lastPosZoneX); ++i)
+                            for (int j = leftupZoneY; j < leftupZoneY + zoneCountY; ++j)
+                            {
+                                std::wstring fullPath = zoneString + std::to_wstring(i) + L"-" + std::to_wstring(j) + L".jpg";
+                                LoadZoneImage(fullPath, i, j);
+                            }
+                    }
+                    else if (currentPosZoneY - lastPosZoneY > 0)
+                    {
+                        // Нижнюю границу грузим
+                        for (int j = leftupZoneY + zoneCountY - 1; j > leftupZoneY + zoneCountY - 1 - (currentPosZoneY - lastPosZoneY); --j)
+                            for (int i = leftupZoneX; i < leftupZoneX + zoneCountX; ++i)
+                            {
+                                std::wstring fullPath = zoneString + std::to_wstring(i) + L"-" + std::to_wstring(j) + L".jpg";
+                                LoadZoneImage(fullPath, i, j);
+                            }
+                    }
+                    else if (currentPosZoneY - lastPosZoneY < 0)
+                    {
+                        // Верхнюю границу грузим
+                        for (int j = leftupZoneY; j < leftupZoneY - (currentPosZoneY - lastPosZoneY); ++j)
+                            for (int i = leftupZoneX; i < leftupZoneX + zoneCountX; ++i)
+                            {
+                                std::wstring fullPath = zoneString + std::to_wstring(i) + L"-" + std::to_wstring(j) + L".jpg";
+                                LoadZoneImage(fullPath, i, j);
+                            }
+                    }
+                    
+                    zones.display();
+                    
+                    lastPosZoneX = currentPosZoneX;
+                    lastPosZoneY = currentPosZoneY;
+                }
+                
+                float xbegin; if (x > 0) xbegin = x - int(x/zone)*(zone) - zone; else xbegin = x - int(x/zone)*(zone);
+                float ybegin; if (y > 0) ybegin = y - int(y/zone)*(zone) - zone; else ybegin = y - int(y/zone)*(zone);
+                zonesSprite.setPosition(xbegin *gs::scale*scale, ybegin *gs::scale*scale);
+            }
+        }
+        void GraphMap::ZonesResize(unsigned int width, unsigned int height)
+        {
+            if (zonesOn)
+            {
+                zoneResized = true;
+                DoZones();
+                
+                float realZone = width/(4*gs::scale*scale);
+                zonesSprite.setScale(gs::scale * zone/realZone /gs::zoneScale, gs::scale * zone/realZone /gs::zoneScale);
+                
+                ChangeZonesPosition();
             }
         }
         void GraphMap::Draw(sf::RenderWindow* window)
         {
-            window->draw(sprite);
+            if (zonesOn)
+            {
+                window->draw(zonesSprite);
+        
+                float xbegin = x - int(x/zone)*zone;
+                int xwidth = gs::width/(gs::scale*scale);
+                for (float xi = xbegin; xi <= xwidth; xi += zone)
+                {
+                    line[0].position.x = line[1].position.x = (xi) * (scale*gs::scale);
+                    line[0].position.y = 0;
+                    line[1].position.y = line[0].position.y + gs::height;
+                    window->draw(line, 2, sf::Lines);
+                }
+                
+                float ybegin = y - int(y/zone)*zone;
+                int yheight = gs::height/(gs::scale*scale);
+                for (float yi = ybegin; yi <= yheight; yi += zone)
+                {
+                    line[0].position.y = line[1].position.y = (yi) * (scale*gs::scale);
+                    line[0].position.x = 0;
+                    line[1].position.x = line[0].position.x + gs::width;
+                    window->draw(line, 2, sf::Lines);
+                }
+            }
+            else
+            {
+                window->draw(sprite);
+            }
             
             bool wasHighlighted{ false };
             for (auto v : vertexes)
             {
-                if (v->visible)
+                if (v->visible && v->x > -x && v->x < xright && v->y > -y && v->y < ybottom)
                 {
-                    //TODO: if the vertex fits the screen
-                    {
-                        float scaledRadius = circle.getRadius();
-                        line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale};
-                        for (auto e : v->vertex->edges)
-                            if (e->out && e->to->vertexinfo->visible)
-                            {
-                                line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale,
-                                                                 (y + e->to->vertexinfo->y)*gs::scale*scale };
-                                if (!e->in) line[1].color = sf::Color(255,90,90,140);
-                                window->draw(line, 2, sf::Lines);
-                                if (!e->in) line[1].color = sf::Color(255,255,255,140);
-                            }
-                        circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
-                        
-                        if (v->highlighted) {
-                            wasHighlighted = true;
-                            circle.setFillColor(sf::Color::Magenta);
-                        } else if (wasHighlighted) {
-                            wasHighlighted = false;
-                            circle.setFillColor(sf::Color::White);
+                    float scaledRadius = circle.getRadius();
+                    line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale};
+                    for (auto e : v->vertex->edges)
+                        if (e->out && e->to->vertexinfo->visible)
+                        {
+                            line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale,
+                                                             (y + e->to->vertexinfo->y)*gs::scale*scale };
+                            if (!e->in) line[1].color = sf::Color(255,90,90,140);
+                            window->draw(line, 2, sf::Lines);
+                            if (!e->in) line[1].color = sf::Color(255,255,255,140);
                         }
-                        
-                        window->draw(circle);
-                    }
+                    circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
+                    
+                    if (v->highlighted) {
+                        wasHighlighted = true;
+                        circle.setFillColor(sf::Color::Magenta);
+                    } else if (wasHighlighted) {
+                        wasHighlighted = false;
+                        circle.setFillColor(sf::Color::White); }
+                    
+                    window->draw(circle);
                 }
             }
             if (!graph->shortestPath.empty())
                 for (unsigned long i = 0; i < graph->shortestPath.size() - 1; ++i)
                 {
                     Vertex* from = graph->shortestPath[i];
-                    Vertex* to = graph->shortestPath[i + 1];
-                    line[0].position = sf::Vector2f{ (x + from->vertexinfo->x)*gs::scale*scale,
-                                                     (y + from->vertexinfo->y)*gs::scale*scale};
-                    line[1].position = sf::Vector2f{ (x + to->vertexinfo->x)*gs::scale*scale ,
-                                                     (y + to->vertexinfo->y)*gs::scale*scale };
-                    line[0].color = sf::Color::Green; line[1].color = sf::Color::Green;
-                    window->draw(line, 2, sf::Lines);
-                    line[0].color = sf::Color(255,255,255,110); line[1].color = sf::Color(255,255,255,110);
+                    if (from->vertexinfo->x > -x && from->vertexinfo->x < xright && from->vertexinfo->y > -y && from->vertexinfo->y < ybottom)
+                    {
+                        Vertex* to = graph->shortestPath[i + 1];
+                        line[0].position = sf::Vector2f{ (x + from->vertexinfo->x)*gs::scale*scale,
+                                                         (y + from->vertexinfo->y)*gs::scale*scale};
+                        line[1].position = sf::Vector2f{ (x + to->vertexinfo->x)*gs::scale*scale ,
+                                                         (y + to->vertexinfo->y)*gs::scale*scale };
+                        line[0].color = sf::Color::Green; line[1].color = sf::Color::Green;
+                        window->draw(line, 2, sf::Lines);
+                        line[0].color = sf::Color(255,255,255,110); line[1].color = sf::Color(255,255,255,110);
+                    }
                 }
             if (wasHighlighted)
                 circle.setFillColor(sf::Color::White);
@@ -316,12 +586,13 @@ namespace at
         }
         void GraphMap::Resize(unsigned int width, unsigned int height)
         {
+            xright = -x + width/(gs::scale*scale);
+            ybottom = -y + height/(gs::scale*scale);
+            
             circle.setRadius(pointRadius * gs::scale*scale);
             circle.setOutlineThickness(gs::scale*scale);
-            
             text.setCharacterSize(45 * gs::scale);
             text.setOutlineThickness(gs::scale);
-            
             sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
             sprite.setScale(gs::scale*scale*imageScale, gs::scale*scale*imageScale);
             
@@ -351,7 +622,7 @@ namespace at
             button_Graph.SetString(L"ЛЭТИ(временно)"); xx += button_Graph.text.getLocalBounds().width;
             button_Graph_xx = gs::width/2 - xx/2;
             
-            if (contentLoaded)
+            /*if (contentLoaded)
             {
                 content.create((abs(rightBorderX - leftBorderX) > image.getSize().x ?
                                 abs(rightBorderX - leftBorderX) : (float)image.getSize().x) * gs::scale * scale,
@@ -361,7 +632,9 @@ namespace at
             }
             
             overlayContent.create(width, height);
-            DrawOverlay();
+            DrawOverlay();*/
+            
+            ZonesResize(width, height);
         }
         void GraphMap::PollEvent(sf::Event& event)
         {
@@ -392,7 +665,7 @@ namespace at
                     {
                         std::function<void(unsigned int, Vertex*, Edge*, unsigned long)> func = std::get<1>(algorithms[algorithmIndex]);
                         clock_t beg = clock();
-                        func(1, vertex, nullptr, graph->vertexes.size() - 1);
+                        func(1, vertex, nullptr, graph->vertices.size() - 1);
                         clock_t end = clock();
                         clockPretime = end - beg;
                     }
@@ -694,6 +967,12 @@ namespace at
                 x = (-rightBorderX + leftBorderX) / (2);
                 y = (-bottomBorderY + topBorderY) / (2);
                 sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
+                //zonesSprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
+                
+                ChangeZonesPosition();
+                /*float xbegin; if (x > 0) xbegin = x - int(x/zone)*(zone) - zone; else xbegin = x - int(x/zone)*(zone);
+                float ybegin; if (y > 0) ybegin = y - int(y/zone)*(zone) - zone; else ybegin = y - int(y/zone)*(zone);
+                zonesSprite.setPosition(xbegin *gs::scale*scale, ybegin *gs::scale*scale);*/
             }
             else if (event.type == sf::Event::MouseWheelScrolled)
             {
@@ -703,7 +982,7 @@ namespace at
                     {
                         if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
                             y += 6/scale * event.mouseWheelScroll.delta;
-                        else
+                        else // TODO: Only if in range: if (event.mouseWheelScroll.delta < 0 || scale != 0.05)
                         {
                             float scalePrev = scale;
                             
@@ -714,20 +993,37 @@ namespace at
                                 circle.setOutlineThickness(2.5/scale * gs::scale*scale);
                             } else {
                                 circle.setRadius(pointRadius * gs::scale*scale);
-                                circle.setOutlineThickness(gs::scale*scale);
-                            }
+                                circle.setOutlineThickness(gs::scale*scale); }
                             
                             x -= (gs::width/(gs::scale*scale) - gs::width/(gs::scale*scale) * (scalePrev/scale))/2;
                             y -= (gs::height/(gs::scale*scale) - gs::height/(gs::scale*scale) * (scalePrev/scale))/2;
+                            
                             sprite.setScale(gs::scale*scale*imageScale, gs::scale*scale*imageScale);
-                            contentDeltaScale -= scalePrev - scale;
-                            contentUpdateTime = 0.2f;
+                            DoZones();
+                            float realZone = gs::width/(4*gs::scale*scale);
+                            zonesSprite.setScale(gs::scale * zone/realZone, gs::scale * zone/realZone);
+                            
+                            /*contentDeltaScale -= scalePrev - scale;
+                            contentUpdateTime = 0.2f;*/
                         }
                     }
                     else if (event.mouseWheelScroll.wheel == sf::Mouse::HorizontalWheel && sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
                         x += 6/scale * event.mouseWheelScroll.delta;
+                    xright = -x + gs::width/(gs::scale*scale);
+                    ybottom = -y + gs::height/(gs::scale*scale);
+                    //cout << x << " " << xright << " " << y << " " << ybottom << endl;
                     
                     sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
+                    
+                    ChangeZonesPosition();
+                    
+                    /*int leftupZoneX;// = floor(-(x/zone));
+                    int leftupZoneY;// = floor(-(y/zone));
+                    if (x > 0) leftupZoneX = floor(-(x/zone)); else leftupZoneX = -x/zone;
+                    if (y > 0) leftupZoneY = floor(-(y/zone)); else leftupZoneY = -y/zone;
+                    cout << "leftup zone: " << leftupZoneX << " " << leftupZoneY << endl;*/
+                    //cout << xbegin << " " << ybegin << endl;
+                    //zonesSprite.setPosition(x *gs::scale*scale, y *gs::scale*scale);
                 }
             }
         }
@@ -754,8 +1050,8 @@ namespace at
                         vertexes.resize(size);
                         for (int i = 0; i < size; ++i)
                         {
-                            vertexes[i] = new VertexInfo(graph->vertexes[i]);
-                            graph->vertexes[i]->vertexinfo = vertexes[i];
+                            vertexes[i] = new VertexInfo(graph->vertices[i]);
+                            graph->vertices[i]->vertexinfo = vertexes[i];
                         }
                         while (!wif.eof())
                         {

@@ -12,12 +12,15 @@
 #include <iostream>
 #include <codecvt>
 
+//FileExists
+#include <sys/stat.h>
 
 std::wstring ParseUntil(std::wstring line, const char& until, unsigned int from);
 std::string utf8(const std::wstring& wstr);
 std::wstring utf16(const std::string& wstr);
 
 std::wstring GetCurrentWorkingDir();
+bool FileExists(const std::wstring& path);
 
 
 #endif /* Base_hpp */

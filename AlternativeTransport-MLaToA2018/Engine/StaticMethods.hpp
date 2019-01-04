@@ -52,6 +52,7 @@ namespace at
         static unsigned int width;
         static unsigned int height;
         static float scale;
+        static float zoneScale;
         
         static int windowPositionOffset;
         

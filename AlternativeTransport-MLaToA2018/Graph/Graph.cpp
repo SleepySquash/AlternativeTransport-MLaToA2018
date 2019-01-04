@@ -36,10 +36,10 @@ namespace at
 
 
 
-    Graph::~Graph() { for (int i = 0; i < vertexes.size(); ++i) { delete vertexes[i]; vertexes[i] = nullptr; } }
-    void Graph::Push(Vertex* v) { vertexes.push_back(v); }
-    Vertex* Graph::operator[](int i) { return vertexes[i]; }
-    unsigned long Graph::size() { return vertexes.size(); }
+    Graph::~Graph() { for (int i = 0; i < vertices.size(); ++i) { delete vertices[i]; vertices[i] = nullptr; } }
+    void Graph::Push(Vertex* v) { vertices.push_back(v); }
+    Vertex* Graph::operator[](int i) { return vertices[i]; }
+    unsigned long Graph::size() { return vertices.size(); }
     void Graph::PrintHierarchy()
     {
         for (auto v : *this)
@@ -52,9 +52,9 @@ namespace at
     }
     void Graph::Remove(Vertex* vertex)
     {
-        if (vertexes.size() != 0)
-            for (int i = 0; i < vertexes.size(); ++i)
-                if (vertexes[i] == vertex)
+        if (vertices.size() != 0)
+            for (int i = 0; i < vertices.size(); ++i)
+                if (vertices[i] == vertex)
                 {
                     Remove(i);
                     break;
@@ -62,17 +62,17 @@ namespace at
     }
     void Graph::Remove(unsigned long index)
     {
-        if (index >= 0 && index < vertexes.size())
+        if (index >= 0 && index < vertices.size())
         {
-            for (auto e : vertexes[index]->edges)
+            for (auto e : vertices[index]->edges)
                 for (unsigned long j = 0; j < e->to->edges.size(); ++j)
-                    if (e->to->edges[j]->to == vertexes[index])
+                    if (e->to->edges[j]->to == vertices[index])
                     {
                         e->to->edges.erase(e->to->edges.begin() + j);
                         //break;
                     }
-            delete vertexes[index];
-            vertexes.erase(vertexes.begin() + index);
+            delete vertices[index];
+            vertices.erase(vertices.begin() + index);
         }
     }
     void Graph::Load(const std::wstring& filename)
@@ -95,9 +95,9 @@ namespace at
             unsigned long size = std::atol(utf8(line).c_str());
             if (size != 0)
             {
-                vertexes.resize(size);
+                vertices.resize(size);
                 for (int i = 0; i < size; ++i)
-                    vertexes[i] = new Vertex();
+                    vertices[i] = new Vertex();
                 while (!wif.eof())
                 {
                     std::getline(wif, line);
@@ -139,7 +139,7 @@ namespace at
                                             in = (v5 == L"1") ? true : false;
                                         }
                                         
-                                        vertexes[from]->Sync(vertexes[to], weight, out, in);
+                                        vertices[from]->Sync(vertices[to], weight, out, in);
                                     }
                                 }
                             }
@@ -161,17 +161,17 @@ namespace at
         
         if ((loaded = wof.is_open()))
         {
-            for (auto v : vertexes)
+            for (auto v : vertices)
                 for (auto e : v->edges)
                     e->savingCompleted = false;
             
-            wof << vertexes.size() << endl;
-            for (unsigned long i = 0; i < vertexes.size(); ++i)
+            wof << vertices.size() << endl;
+            for (unsigned long i = 0; i < vertices.size(); ++i)
             {
-                if (vertexes[i]->edges.size() != 0)
-                    for (unsigned long j = 0; j < vertexes.size(); ++j)
+                if (vertices[i]->edges.size() != 0)
+                    for (unsigned long j = 0; j < vertices.size(); ++j)
                     {
-                        Edge* edge = vertexes[i]->Connection(vertexes[j]);
+                        Edge* edge = vertices[i]->Connection(vertices[j]);
                         if (edge != nullptr && !edge->savingCompleted && edge->weight > 0)
                         {
                             wof << i << L'-' << j << L' ' << edge->weight;
@@ -179,7 +179,7 @@ namespace at
                                 wof << " " << edge->out << " " << edge->in;
                             wof << endl;
                             
-                            Edge* another = vertexes[j]->Connection(vertexes[i]);
+                            Edge* another = vertices[j]->Connection(vertices[i]);
                             edge->savingCompleted = true;
                             another->savingCompleted = true;
                         }
@@ -190,8 +190,8 @@ namespace at
     }
     void Graph::Clear()
     {
-        for (int i = 0; i < vertexes.size(); ++i) { delete vertexes[i]; vertexes[i] = nullptr; }
-        vertexes.clear();
+        for (int i = 0; i < vertices.size(); ++i) { delete vertices[i]; vertices[i] = nullptr; }
+        vertices.clear();
         loaded = false;
         filePath = L"";
     }
@@ -204,7 +204,7 @@ namespace at
         switch (mode)
         {
             case 0:
-                for (auto v : vertexes)
+                for (auto v : vertices)
                 {
                     if (v->data != nullptr)
                         delete v->data;
@@ -212,17 +212,17 @@ namespace at
                 }
                 break;
             case 1:
-                vertexes.back()->data = new DijkstraHolder();
+                vertices.back()->data = new DijkstraHolder();
                 break;
             default: break;
         }
     }
     double Graph::SlowDijkstra(unsigned long si, unsigned long ti)
     {
-        Vertex* s = vertexes[si];
-        Vertex* t = vertexes[ti];
+        Vertex* s = vertices[si];
+        Vertex* t = vertices[ti];
         
-        for (auto v : vertexes) {
+        for (auto v : vertices) {
             DijkstraHolder* data = reinterpret_cast<DijkstraHolder*>(v->data);
             data->out = false;
             data->weight = std::numeric_limits<double>::infinity(); }
@@ -283,7 +283,7 @@ namespace at
     void Graph::SlowDijkstra_Destroy()
     {
         cout << "D Unload" << endl;
-        for (auto v : vertexes)
+        for (auto v : vertices)
         {
             if (v->data != nullptr)
                 delete v->data;
@@ -297,7 +297,7 @@ namespace at
     {
         switch (mode) {
             case 0:
-                for (auto v : vertexes)
+                for (auto v : vertices)
                 {
                     if (v->data != nullptr)
                         delete v->data;
@@ -305,17 +305,17 @@ namespace at
                 }
                 break;
             case 1:
-                vertexes.back()->data = new DijkstraHolder();
+                vertices.back()->data = new DijkstraHolder();
                 break;
             default: break;
         }
     }
     double Graph::Dijkstra(unsigned long si, unsigned long ti)
     {
-        Vertex* s = vertexes[si];
-        Vertex* t = vertexes[ti];
+        Vertex* s = vertices[si];
+        Vertex* t = vertices[ti];
         
-        for (auto v : vertexes) {
+        for (auto v : vertices) {
             DijkstraHolder* data = reinterpret_cast<DijkstraHolder*>(v->data);
             data->out = false;
             data->weight = std::numeric_limits<double>::infinity(); }
@@ -363,7 +363,7 @@ namespace at
     }
     void Graph::DijkstraDestroy()
     {
-        for (auto v : vertexes) {
+        for (auto v : vertices) {
             if (v->data != nullptr) delete v->data;
             v->data = nullptr;
         }
@@ -378,18 +378,18 @@ namespace at
         {
             case 0:
                 dijkstraOData.clear();
-                dijkstraOData.resize(vertexes.size());
-                dijkstraOMap.reserve(vertexes.size());
-                for (unsigned long i = 0; i < vertexes.size(); ++i)
+                dijkstraOData.resize(vertices.size());
+                dijkstraOMap.reserve(vertices.size());
+                for (unsigned long i = 0; i < vertices.size(); ++i)
                 {
                     dijkstraOData[i] = DijkstraOptimizedData();
-                    dijkstraOMap[vertexes[i]] = &(dijkstraOData[i]);
+                    dijkstraOMap[vertices[i]] = &(dijkstraOData[i]);
                 }
                 break;
                 
             case 1:
                 dijkstraOData.push_back(DijkstraOptimizedData());
-                dijkstraOMap.insert({vertexes[index], &(dijkstraOData[index])});
+                dijkstraOMap.insert({vertices[index], &(dijkstraOData[index])});
                 break;
                 
             case 2:
@@ -403,7 +403,7 @@ namespace at
     }
     double Graph::ExternalDijkstra(unsigned long s, unsigned long t)
     {
-        for (unsigned long i = 0; i < vertexes.size(); ++i) {
+        for (unsigned long i = 0; i < vertices.size(); ++i) {
             dijkstraOData[i].weight = std::numeric_limits<double>::infinity();
             dijkstraOData[i].out = false; }
         dijkstraOData[s].previous = nullptr;
@@ -411,7 +411,7 @@ namespace at
         
         priority_queue<pair<double, Vertex*>, vector<pair<double, Vertex*>>, PairByDistanceComparator> stack;
         dijkstraOData[s].weight = 0;
-        stack.push(make_pair(0, vertexes[s]));
+        stack.push(make_pair(0, vertices[s]));
         
         while (!stack.empty())
         {
@@ -425,14 +425,14 @@ namespace at
                     {
                         (*dijkstraOMap[e->to]).weight = (*dijkstraOMap[current]).weight + e->weight;
                         (*dijkstraOMap[e->to]).previous = current;
-                        if (e->to != vertexes[t]) stack.push(make_pair((*dijkstraOMap[e->to]).weight, e->to));
+                        if (e->to != vertices[t]) stack.push(make_pair((*dijkstraOMap[e->to]).weight, e->to));
                     }
                 }
             (*dijkstraOMap[current]).out = true;
         }
         if (dijkstraOData[t].weight != 0 && dijkstraOData[t].weight != std::numeric_limits<double>::infinity())
         {
-            Vertex* current = vertexes[t];
+            Vertex* current = vertices[t];
             while (current != nullptr)
             {
                 shortestPath.insert(shortestPath.begin(), current);
