@@ -39,6 +39,15 @@ namespace at
         struct VertexInfo;
     }
     struct Vertex;
+    
+    struct DataHolder { };
+    struct DijkstraHolder : DataHolder
+    {
+        double weight{ 0 };
+        bool out{ false };
+        Vertex* previous{ nullptr };
+    };
+    
     struct Edge
     {
         Vertex* to{ nullptr };
@@ -46,6 +55,7 @@ namespace at
         bool out{ false };
         bool in{ false };
         
+        DataHolder* data{ nullptr };
         bool savingCompleted{ false };
         
         Edge(Vertex* to, double weight, bool out = true, bool in = true) :
@@ -53,14 +63,6 @@ namespace at
         
         friend class Vertex;
         friend class Graph;
-    };
-
-    struct DataHolder { };
-    struct DijkstraHolder : DataHolder
-    {
-        double weight{ 0 };
-        bool out{ false };
-        Vertex* previous{ nullptr };
     };
     
     struct Vertex
