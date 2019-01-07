@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <vector>
+#include <functional>
 
 #include <SFML/Main.hpp>
 #include <SFML/Audio.hpp>

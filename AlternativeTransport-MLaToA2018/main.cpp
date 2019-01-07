@@ -172,13 +172,17 @@ int main()
             }
         }
         
+#ifdef _WIN32
+        system.Update(clock.restart());
+        
+        window.clear();
+        system.Draw(&window);
+        window.display();
+#else
         std::thread drawThread(DrawInParallel, &window, &system);
         system.Update(clock.restart());
         drawThread.join();
-        
-        /*window.clear();
-        system.Draw(&window);
-        window.display();*/
+#endif
     }
 
     system.Destroy();
