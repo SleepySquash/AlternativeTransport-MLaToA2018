@@ -865,6 +865,7 @@ namespace at
                                 }
                         }
                     }
+            shortestPath.clear();
         }
     }
     double Graph::ArcFlags(unsigned long si, unsigned long ti)
