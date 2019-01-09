@@ -73,6 +73,28 @@ namespace at
             line[0] = sf::Vertex({0, 0}, sf::Color(255,255,255,110));
             line[1] = sf::Vertex({10, 10}, sf::Color(255,255,255,110));
             
+            thickline[0] = sf::Vertex({0, 0}, sf::Color::Green);
+            thickline[1] = sf::Vertex({10, 10}, sf::Color::Green);
+            thickline[2] = sf::Vertex({1, 1}, sf::Color::Green);
+            thickline[3] = sf::Vertex({11, 11}, sf::Color::Green);
+            
+            flags[0] = sf::Vertex({0, 0}, sf::Color::Green);
+            flags[1] = sf::Vertex({10, 10}, sf::Color::Green);
+            flags[2] = sf::Vertex({11, 11}, sf::Color::Green);
+            
+            if (flagTexutre.loadFromFile(resourcePath() + "Data/Images/flag_s.png"))
+            {
+                flagTexutre.setSmooth(true);
+                flagSprite.setTexture(flagTexutre);
+                flagSprite.setOrigin(95, 219);
+            }
+            if (finTexutre.loadFromFile(resourcePath() + "Data/Images/flag_t.png"))
+            {
+                finTexutre.setSmooth(true);
+                finSprite.setTexture(finTexutre);
+                finSprite.setOrigin(74, 219);
+            }
+            
             circle.setRadius(pointRadius * gs::scale);
             circle.setFillColor(sf::Color::White);
             circle.setOutlineColor(sf::Color::Black);
@@ -428,9 +450,7 @@ namespace at
                 }
             }
             else
-            {
                 window->draw(sprite);
-            }
             
             bool wasHighlighted{ false };
             for (auto v : vertexes)
@@ -460,7 +480,7 @@ namespace at
                     window->draw(circle);
                 }
             }
-            if (!graph->shortestPath.empty())
+            /*if (!graph->shortestPath.empty())
                 for (unsigned long i = 0; i < graph->shortestPath.size() - 1; ++i)
                 {
                     Vertex* from = graph->shortestPath[i];
@@ -475,7 +495,45 @@ namespace at
                         window->draw(line, 2, sf::Lines);
                         line[0].color = sf::Color(255,255,255,110); line[1].color = sf::Color(255,255,255,110);
                     }
+                }*/
+            if (!graph->shortestPath.empty())
+            {
+                float thickness;
+                if (scale >= 0.68) thickness = (0.68 * 12 * gs::scale);
+                else thickness = (12 * gs::scale*scale);
+                
+                for (unsigned long i = 0; i < graph->shortestPath.size() - 1; ++i)
+                {
+                    Vertex* from = graph->shortestPath[i];
+                    if (from->vertexinfo->x > -x && from->vertexinfo->x < xright && from->vertexinfo->y > -y && from->vertexinfo->y < ybottom)
+                    {
+                        Vertex* to = graph->shortestPath[i + 1];
+                        thickline[0].position = sf::Vector2f{ (x + from->vertexinfo->x)*gs::scale*scale,
+                            (y + from->vertexinfo->y)*gs::scale*scale};
+                        thickline[1].position = sf::Vector2f{ thickline[0].position.x + thickness,
+                            thickline[0].position.y + thickness};
+                        thickline[3].position = sf::Vector2f{ (x + to->vertexinfo->x)*gs::scale*scale ,
+                            (y + to->vertexinfo->y)*gs::scale*scale };
+                        thickline[2].position = sf::Vector2f{ thickline[3].position.x + thickness,
+                            thickline[3].position.y + thickness};
+                        window->draw(thickline, 4, sf::Quads);
+                    }
                 }
+                
+                VertexInfo* s = graph->shortestPath[0]->vertexinfo;
+                VertexInfo* t = graph->shortestPath[graph->shortestPath.size() - 1]->vertexinfo;
+                
+                float flagScale{ 1.f };
+                if (scale < 0.5)
+                    flagScale = 2 * scale;
+                flagSprite.setScale(flagScale, flagScale);
+                finSprite.setScale(flagScale, flagScale);
+                
+                flagSprite.setPosition((x + s->x)*gs::scale*scale, (y + s->y)*gs::scale*scale);
+                window->draw(flagSprite);
+                finSprite.setPosition((x + t->x)*gs::scale*scale, (y + t->y)*gs::scale*scale);
+                window->draw(finSprite);
+            }
             if (wasHighlighted)
                 circle.setFillColor(sf::Color::White);
             
@@ -879,8 +937,49 @@ namespace at
                     {
                         float mx = -x + event.mouseButton.x/(gs::scale * scale);
                         float my = -y + event.mouseButton.y/(gs::scale * scale);
-                        float actualRadius = ((scale >= 2.5) ? 2.5/scale : 1.f) * pointRadius;
+                        //float actualRadius = ((scale >= 2.5) ? 2.5/scale : 1.f) * pointRadius;
+                        
+                        double minDistance = std::numeric_limits<double>::infinity();
+                        VertexInfo* vertex{ nullptr }; unsigned long srci{ 0 };
                         for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
+                        {
+                            double distance = sqrt(pow(mx - vertexes[i]->x, 2) + pow(my - vertexes[i]->y, 2));
+                            if (distance < minDistance)
+                            {
+                                minDistance = distance;
+                                vertex = vertexes[i]; srci = i;
+                            }
+                            if (i == 0) break;
+                        }
+                        if (vertex != nullptr)
+                        {
+                            distance = std::numeric_limits<double>::infinity();
+                            if (source == vertex) {
+                                source->highlighted = false;
+                                source = nullptr;
+                            } else if (source == nullptr) {
+                                source = vertex; sourcei = srci;
+                                source->highlighted = true;
+                            } else {
+                                graph->shortestPath.clear();
+                                
+                                clock_t beg = clock();
+                                if ((std::get<3>(algorithms[algorithmIndex])) != nullptr) {
+                                    std::function<double(unsigned long, unsigned long)> func = std::get<3>(algorithms[algorithmIndex]);
+                                    distance = func(sourcei, srci); }
+                                clock_t end = clock();
+                                clockRuntime = end - beg;
+                                
+                                source->highlighted = false;
+                                source = nullptr;
+                                if (!graph->shortestPath.empty())
+                                    for (auto v : graph->shortestPath)
+                                        v->vertexinfo->highlighted = true;
+                            }
+                            found = true;
+                            event = sf::Event();
+                        }
+                        /*for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
                         {
                             if (mx > vertexes[i]->x - actualRadius && mx < vertexes[i]->x + actualRadius &&
                                 my > vertexes[i]->y - actualRadius && my < vertexes[i]->y + actualRadius)
@@ -912,7 +1011,7 @@ namespace at
                                 event = sf::Event();
                             }
                             if (i == 0) break;
-                        }
+                        }*/
                     }
                     if (!found)
                     {
@@ -1093,6 +1192,12 @@ namespace at
                 /*float xbegin; if (x > 0) xbegin = x - int(x/zone)*(zone) - zone; else xbegin = x - int(x/zone)*(zone);
                 float ybegin; if (y > 0) ybegin = y - int(y/zone)*(zone) - zone; else ybegin = y - int(y/zone)*(zone);
                 zonesSprite.setPosition(xbegin *gs::scale*scale, ybegin *gs::scale*scale);*/
+            }
+            else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Q)
+            {
+                if (source != nullptr)
+                    source->highlighted = false;
+                source = nullptr;
             }
             else if (event.type == sf::Event::MouseWheelScrolled)
             {

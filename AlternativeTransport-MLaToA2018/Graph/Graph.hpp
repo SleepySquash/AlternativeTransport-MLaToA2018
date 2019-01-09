@@ -168,7 +168,7 @@ namespace at
         void ExternalDijkstra_Unload();
         
         
-        int ZonesNum{ 0 };
+        unsigned long ZonesNum{ 0 };
         void ArcFlags_Dijkstra(Vertex* s, Vertex* t);
         void ArcFlags_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
         double ArcFlags(unsigned long si, unsigned long ti);

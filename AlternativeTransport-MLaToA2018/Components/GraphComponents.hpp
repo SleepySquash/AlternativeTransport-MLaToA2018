@@ -78,6 +78,13 @@ namespace at
                 sf::Vertex({0, 0}, sf::Color(255,255,255,140)),
                 sf::Vertex({10, 10}, sf::Color(255,255,255,140))
             };*/
+            sf::Vertex thickline[4];
+            sf::Vertex flags[3];
+            
+            sf::Texture flagTexutre;
+            sf::Sprite flagSprite;
+            sf::Texture finTexutre;
+            sf::Sprite finSprite;
             
             enum class screenEnum { main, choosing_algorithm };
             screenEnum screen = screenEnum::main;

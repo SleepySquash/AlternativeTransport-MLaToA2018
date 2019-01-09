@@ -139,6 +139,7 @@ int main()
                     {
                         case sf::Keyboard::Num0:
                         case sf::Keyboard::R:
+                        case sf::Keyboard::Q:
                             system.PollEvent(event);
                             break;
                         case sf::Keyboard::C:
