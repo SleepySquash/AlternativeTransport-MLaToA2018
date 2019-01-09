@@ -94,8 +94,6 @@ namespace at
             clock_t clockPretime{ 0 };
             bool needsPreprocessing{ false };
             
-            float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
-            
             sf::RenderTexture zones;
             sf::Sprite zonesSprite;
             int currentPosZoneX{ 0 }, currentPosZoneY{ 0 }, lastPosZoneX{ 0 }, lastPosZoneY{ 0 };
@@ -115,6 +113,9 @@ namespace at
             int zone{ 64 }, sectorx1{ 0 }, sectory1{ 0 };
             float pointRadius{ 5 }, scale { 1.f };
             float x{ 0 }, y{ 0 }, xright{ 0 }, ybottom{ 0 };
+            
+            int arcFlagsZonesAxes{ 0 };
+            float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
             
             GraphMap(Graph* graph);
             void Init() override;

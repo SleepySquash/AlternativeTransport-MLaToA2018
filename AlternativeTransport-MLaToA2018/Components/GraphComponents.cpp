@@ -14,6 +14,8 @@ namespace at
     {
         GraphMap::GraphMap(Graph* graph)
         {
+            gs::static_graphMap = this;
+            
             this->graph = graph;
             if (graph->loaded)
                 Load();
@@ -39,11 +41,26 @@ namespace at
                                                      false,
                                                      std::bind( &Graph::Dijkstra, graph, _1, _2 ),
                                                      std::bind( &Graph::DijkstraDestroy, graph) ));
+                algorithms.push_back(std::make_tuple(L"ParMoment Дейкстра",
+                                                     std::bind( &Graph::ParallelDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
+                                                     false,
+                                                     std::bind( &Graph::ParallelMomentDijkstra, graph, _1, _2 ),
+                                                     std::bind( &Graph::ParallelDijkstra_Destroy, graph) ));
+                algorithms.push_back(std::make_tuple(L"Parallel Дейкстра",
+                                                     std::bind( &Graph::ParallelDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
+                                                     false,
+                                                     std::bind( &Graph::ParallelDijkstra, graph, _1, _2 ),
+                                                     std::bind( &Graph::ParallelDijkstra_Destroy, graph) ));
                 algorithms.push_back(std::make_tuple(L"External Дейкстра",
                                                      std::bind( &Graph::ExternalDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
                                                      false,
                                                      std::bind( &Graph::ExternalDijkstra, graph, _1, _2 ),
                                                      std::bind( &Graph::ExternalDijkstra_Unload, graph) ));
+                algorithms.push_back(std::make_tuple(L"Arc Flags",
+                                                     std::bind( &Graph::ArcFlags_Preprocessing, graph, _1, _2, _3, _4 ),
+                                                     true,
+                                                     std::bind( &Graph::ArcFlags, graph, _1, _2 ),
+                                                     std::bind( &Graph::ArcFlags_Destroy, graph) ));
                 algorithms.push_back(std::make_tuple(L"Таблица",
                                                      std::bind( &Graph::TableLookup_Preprocessing, graph, _1, _2, _3, _4 ),
                                                      true,
@@ -112,6 +129,7 @@ namespace at
         }
         void GraphMap::Destroy()
         {
+            gs::static_graphMap = nullptr;
             for (auto v : vertexes)
                 delete v;
         }
@@ -461,6 +479,64 @@ namespace at
             if (wasHighlighted)
                 circle.setFillColor(sf::Color::White);
             
+            if (algorithmIndex == 2 || algorithmIndex == 3)
+            {
+                if (!graph->shortestPath.empty())
+                {
+                    for (auto v : vertexes)
+                    {
+                        if (v->visible && v->x > -x && v->x < xright && v->y > -y && v->y < ybottom)
+                        {
+                            ParallelDijkstraHolder* data = reinterpret_cast<ParallelDijkstraHolder*>(v->vertex->data);
+                            if (data->out == 1) {
+                                circle.setFillColor(sf::Color::Yellow);
+                                float scaledRadius = circle.getRadius();
+                                circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
+                                window->draw(circle);
+                            } else if (data->out == 2) {
+                                circle.setFillColor(sf::Color::Blue);
+                                float scaledRadius = circle.getRadius();
+                                circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
+                                window->draw(circle);
+                            }
+                        }
+                    }
+                    circle.setFillColor(sf::Color::White);
+                }
+            }
+            if (algorithmIndex == 5)
+            {
+                if (!needsPreprocessing && arcFlagsZonesAxes == 3)
+                {
+                    for (auto v : vertexes)
+                    {
+                        if (v->visible && v->x > -x && v->x < xright && v->y > -y && v->y < ybottom)
+                        {
+                            float scaledRadius = circle.getRadius();
+                            circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
+                            
+                            if (v == source) { circle.setFillColor(sf::Color::Magenta); }
+                            else
+                            {
+                                ArcDijkstraHolder* data = reinterpret_cast<ArcDijkstraHolder*>(v->vertex->data);
+                                if (data->zone == 0) { circle.setFillColor(sf::Color::White); }
+                                else if (data->zone == 1) { circle.setFillColor(sf::Color::Blue); }
+                                else if (data->zone == 2) { circle.setFillColor(sf::Color::Yellow); }
+                                else if (data->zone == 3) { circle.setFillColor(sf::Color::Magenta); }
+                                else if (data->zone == 4) { circle.setFillColor(sf::Color::Red); }
+                                else if (data->zone == 5) { circle.setFillColor(sf::Color::Black); }
+                                else if (data->zone == 6) { circle.setFillColor(sf::Color::Green); }
+                                else if (data->zone == 7) { circle.setFillColor(sf::Color::Cyan); }
+                                else if (data->zone == 8) { circle.setFillColor(sf::Color::White); }
+                            }
+                            
+                            window->draw(circle);
+                        }
+                    }
+                    circle.setFillColor(sf::Color::White);
+                }
+            }
+            
             if (fontLoaded)
             {
                 if (panelVisible)
@@ -715,6 +791,45 @@ namespace at
                         source = nullptr;
                     }
                 }
+                else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z))
+                {
+                    float mx = -x + event.mouseButton.x/(gs::scale * scale);
+                    float my = -y + event.mouseButton.y/(gs::scale * scale);
+                    if (source == nullptr)
+                    {
+                        bool found{ false };
+                        float actualRadius = ((scale >= 2.5) ? 2.5/scale : 1.f) * pointRadius;
+                        for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
+                        {
+                            if (mx > vertexes[i]->x - actualRadius && mx < vertexes[i]->x + actualRadius &&
+                                my > vertexes[i]->y - actualRadius && my < vertexes[i]->y + actualRadius)
+                            {
+                                source = vertexes[i];
+                                source->highlighted = true;
+                                found = true;
+                                event = sf::Event();
+                            }
+                            if (i == 0) break;
+                        }
+                    }
+                    else
+                    {
+                        source->x = mx;
+                        source->y = my;
+                        for (auto e : source->vertex->edges)
+                        {
+                            double distance = sqrt(pow(e->to->vertexinfo->x - mx, 2) + pow(e->to->vertexinfo->y - my, 2));
+                            e->weight = distance;
+                            
+                            Edge* sister = e->to->Connection(source->vertex);
+                            if (sister != nullptr)
+                                sister->weight = distance;
+                        }
+                        
+                        source->highlighted = false;
+                        source = nullptr;
+                    }
+                }
                 else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LAlt))
                 {
                     float mx = -x + event.mouseButton.x/(gs::scale * scale);
@@ -956,6 +1071,11 @@ namespace at
             else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Num0)
             {
                 /// Служебное событие для глобальных корректировок
+                
+                /*for (auto v : graph->vertices)
+                    for (auto e : v->edges)
+                        e->weight *= 2.309090909090909;*/
+                
                 /*for (auto v : vertexes)
                 {
                     v->x += 10;
@@ -1364,5 +1484,36 @@ namespace at
             
             overlayContent.display();
         }
+    }
+}
+
+namespace at
+{
+    void ArcFlags_ZoneDivision(Graph* graph, int axesZones)
+    {
+        GraphComponents::GraphMap* map = gs::static_graphMap;
+        //cout << map->leftBorderX << " " << map->rightBorderX << "  " << map->topBorderY << " " << map->bottomBorderY << endl;
+        map->arcFlagsZonesAxes = axesZones;
+        
+        std::vector<sf::FloatRect> rects; // Требуется +0.1f в связи с неточностью сравнения float по порядку.
+        float xStep = (map->rightBorderX - map->leftBorderX) / axesZones + 0.1f;
+        float yStep = (map->bottomBorderY - map->topBorderY) / axesZones + 0.1f;
+        for (float ix = map->leftBorderX; ix < map->rightBorderX; ix += xStep)
+            for (float iy = map->topBorderY; iy < map->bottomBorderY; iy += yStep)
+                rects.push_back(sf::FloatRect(ix, iy, xStep, yStep));
+        
+        /*for (int i = 0; i < rects.size(); ++i)
+        {
+            cout << rects[i].left << " " << rects[i].width << "  " << rects[i].top << " " << rects[i].height << endl;
+        }*/
+        
+        for (auto v : map->vertexes)
+            for (int i = 0; i < rects.size(); ++i)
+                if (rects[i].contains(v->x, v->y))
+                {
+                    ArcDijkstraHolder* data = reinterpret_cast<ArcDijkstraHolder*>(v->vertex->data);
+                    data->zone = i;
+                }
+        graph->ZonesNum = rects.size();
     }
 }

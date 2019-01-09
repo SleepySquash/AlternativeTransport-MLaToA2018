@@ -12,6 +12,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <thread>
 
 #include <vector>
 #include <deque>
@@ -34,6 +35,8 @@ using std::make_pair;
 
 namespace at
 {
+    struct Graph;
+    void ArcFlags_ZoneDivision(Graph* graph, int axesZones);
     namespace GraphComponents
     {
         struct VertexInfo;
@@ -47,6 +50,24 @@ namespace at
         bool out{ false };
         Vertex* previous{ nullptr };
     };
+    struct ParallelDijkstraHolder : DataHolder
+    {
+        double weight{ 0 };
+        char out{ 0 };
+        Vertex* previous{ nullptr };
+    };
+    struct ArcDijkstraHolder : DataHolder
+    {
+        unsigned long zone{ 0 };
+        double weight{ 0 };
+        bool out{ false };
+        Vertex* previous{ nullptr };
+    };
+    struct ArcFlagsHolder : DataHolder
+    {
+        bool* flags{ nullptr };
+        ~ArcFlagsHolder();
+    };
     
     struct Edge
     {
@@ -58,6 +79,7 @@ namespace at
         DataHolder* data{ nullptr };
         bool savingCompleted{ false };
         
+        ~Edge();
         Edge(Vertex* to, double weight, bool out = true, bool in = true) :
              to(to), weight(weight), out(out), in(in) { }
         
@@ -125,11 +147,32 @@ namespace at
         void DijkstraDestroy();
         
         
+        bool parallelEnding{ false };
+        Vertex* parallel_sEnd{ nullptr }, *parallel_tEnd{ nullptr };
+        double ParallelMomentDijkstra(unsigned long si, unsigned long ti);
+        void ReverseMomentDijkstra(unsigned long si, unsigned long ti);
+        
+        char mightEndAmount{ 0 }, sEndAmount{ 0 }, tEndAmount{ 0 };
+        Vertex* sEnd{ nullptr }, *tEnd{ nullptr };
+        vector<pair<Vertex*, Vertex*>> encounters;
+        void ParallelDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double ParallelDijkstra(unsigned long si, unsigned long ti);
+        void ReverseDijkstra(unsigned long si, unsigned long ti);
+        void ParallelDijkstra_Destroy();
+        
+        
         deque<DijkstraOptimizedData> dijkstraOData;
         unordered_map<Vertex*, DijkstraOptimizedData*> dijkstraOMap;
         void ExternalDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
         double ExternalDijkstra(unsigned long si, unsigned long ti);
         void ExternalDijkstra_Unload();
+        
+        
+        int ZonesNum{ 0 };
+        void ArcFlags_Dijkstra(Vertex* s, Vertex* t);
+        void ArcFlags_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double ArcFlags(unsigned long si, unsigned long ti);
+        void ArcFlags_Destroy();
         
         
         void TableLookup_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);

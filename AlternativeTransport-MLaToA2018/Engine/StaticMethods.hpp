@@ -44,6 +44,10 @@ namespace at
     
     
     
+    namespace GraphComponents
+    {
+        struct GraphMap;
+    }
     class GlobalSettings
     {
     public:
@@ -62,6 +66,8 @@ namespace at
         
         enum class algorithmEnum { Dijkstra, DijkstraOptimized, DoubleDijkstra, ParallelDijkstra, AStar, ArcFlags, ArcFlagsParallel, ContractionHierarchy, HubLabel, Overlay, TableLookup };
         static algorithmEnum algorithm;
+        
+        static GraphComponents::GraphMap* static_graphMap;
     };
     
     std::wstring GetAlgorithmName(const GlobalSettings::algorithmEnum& algorithm);
