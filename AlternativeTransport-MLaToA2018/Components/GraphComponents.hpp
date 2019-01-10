@@ -97,7 +97,6 @@ namespace at
             double speed{ 0 };
             double time{ 0 };
             
-            clock_t clockRuntime{ 0 }, clockPretime{ 0 };
             double timeRuntime{ 0 }, timePretime{ 0 };
             bool needsPreprocessing{ false };
             

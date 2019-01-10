@@ -126,6 +126,9 @@ int main()
                 case sf::Event::KeyPressed:
                     switch (event.key.code)
                     {
+                        case sf::Keyboard::Q:
+                            system.PollEvent(event);
+                            break;
                         case sf::Keyboard::Escape:
                             //window.close();
                             break;
@@ -139,7 +142,6 @@ int main()
                     {
                         case sf::Keyboard::Num0:
                         case sf::Keyboard::R:
-                        case sf::Keyboard::Q:
                             system.PollEvent(event);
                             break;
                         case sf::Keyboard::C:

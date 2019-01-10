@@ -519,20 +519,6 @@ namespace at
                         window->draw(thickline, 4, sf::Quads);
                     }
                 }
-                
-                VertexInfo* s = graph->shortestPath[0]->vertexinfo;
-                VertexInfo* t = graph->shortestPath[graph->shortestPath.size() - 1]->vertexinfo;
-                
-                float flagScale{ 0.5f * gs::scale };
-                if (scale < 0.5)
-                    flagScale = scale * gs::scale;
-                flagSprite.setScale(flagScale, flagScale);
-                finSprite.setScale(flagScale, flagScale);
-                
-                flagSprite.setPosition((x + s->x)*gs::scale*scale, (y + s->y)*gs::scale*scale);
-                window->draw(flagSprite);
-                finSprite.setPosition((x + t->x)*gs::scale*scale, (y + t->y)*gs::scale*scale);
-                window->draw(finSprite);
             }
             if (wasHighlighted)
                 circle.setFillColor(sf::Color::White);
@@ -593,6 +579,22 @@ namespace at
                     }
                     circle.setFillColor(sf::Color::White);
                 }
+            }
+            if (!graph->shortestPath.empty())
+            {
+                VertexInfo* s = graph->shortestPath[0]->vertexinfo;
+                VertexInfo* t = graph->shortestPath[graph->shortestPath.size() - 1]->vertexinfo;
+                
+                float flagScale{ 0.5f * gs::scale };
+                if (scale < 0.5)
+                    flagScale = scale * gs::scale;
+                flagSprite.setScale(flagScale, flagScale);
+                finSprite.setScale(flagScale, flagScale);
+                
+                flagSprite.setPosition((x + s->x)*gs::scale*scale, (y + s->y)*gs::scale*scale);
+                window->draw(flagSprite);
+                finSprite.setPosition((x + t->x)*gs::scale*scale, (y + t->y)*gs::scale*scale);
+                window->draw(finSprite);
             }
             
             if (fontLoaded)
@@ -794,15 +796,13 @@ namespace at
                     vertexes.push_back(vinfo);
                     
                     if (std::get<2>(algorithms[algorithmIndex]))
-                        { needsPreprocessing = true; clockPretime = 0; timePretime = 0; }
+                        { needsPreprocessing = true; timePretime = 0; }
                     else if ((std::get<1>(algorithms[algorithmIndex])) != nullptr)
                     {
                         std::function<void(unsigned int, Vertex*, Edge*, unsigned long)> func = std::get<1>(algorithms[algorithmIndex]);
-                        clock_t beg = clock();
+                        sf::Clock clock;
                         func(1, vertex, nullptr, graph->vertices.size() - 1);
-                        clock_t end = clock();
-                        clockPretime = end - beg;
-                        timePretime = clockPretime / 1000000.f;
+                        timePretime = clock.getElapsedTime().asSeconds();
                     }
                 }
                 else if (sf::Keyboard::isKeyPressed(sf::Keyboard::LControl))
@@ -826,15 +826,13 @@ namespace at
                                 vertexes[i]->vertex->Sync(source->vertex,
                                                           sqrt(pow(vertexes[i]->x - source->x, 2) + pow(vertexes[i]->y - source->y, 2)));
                                 if (std::get<2>(algorithms[algorithmIndex]))
-                                    { needsPreprocessing = true; clockPretime = 0; timePretime = 0; }
+                                    { needsPreprocessing = true; timePretime = 0; }
                                 else if ((std::get<1>(algorithms[algorithmIndex])) != nullptr)
                                 {
                                     std::function<void(unsigned int, Vertex*, Edge*, unsigned long)> func = std::get<1>(algorithms[algorithmIndex]);
-                                    clock_t beg = clock();
+                                    sf::Clock clock;
                                     func(2, source->vertex, vertexes[i]->vertex->Connection(source->vertex), i);
-                                    clock_t end = clock();
-                                    clockPretime = end - beg;
-                                    timePretime = clockPretime / 1000000.f;
+                                    timePretime = clock.getElapsedTime().asSeconds();
                                 }
                                 source->highlighted = false;
                                 source = nullptr;
@@ -909,15 +907,13 @@ namespace at
                             vertexes.erase(vertexes.begin() + i);
                             
                             if (std::get<2>(algorithms[algorithmIndex]))
-                                { needsPreprocessing = true; clockPretime = 0; timePretime = 0; }
+                                { needsPreprocessing = true; timePretime = 0; }
                             else if ((std::get<1>(algorithms[algorithmIndex])) != nullptr)
                             {
                                 std::function<void(unsigned int, Vertex*, Edge*, unsigned long)> func = std::get<1>(algorithms[algorithmIndex]);
-                                clock_t beg = clock();
+                                sf::Clock clock;
                                 func(3, temp, nullptr, i);
-                                clock_t end = clock();
-                                clockPretime = end - beg;
-                                timePretime = clockPretime / 1000000.f;
+                                timePretime = clock.getElapsedTime().asSeconds();
                             }
                             
                             event = sf::Event();
@@ -970,13 +966,11 @@ namespace at
                             } else {
                                 graph->shortestPath.clear();
                                 
-                                clock_t beg = clock();
+                                sf::Clock clock;
                                 if ((std::get<3>(algorithms[algorithmIndex])) != nullptr) {
                                     std::function<double(unsigned long, unsigned long)> func = std::get<3>(algorithms[algorithmIndex]);
                                     distance = func(sourcei, srci); }
-                                clock_t end = clock();
-                                clockRuntime = end - beg;
-                                timeRuntime = clockRuntime / 1000000.f;
+                                timeRuntime = clock.getElapsedTime().asSeconds();
                                 
                                 source->highlighted = false;
                                 source = nullptr;
@@ -1087,7 +1081,7 @@ namespace at
                                             v->vertexinfo->highlighted = false;
                                         graph->shortestPath.clear();
                                     } graph->shortestPath.clear();
-                                    clockPretime = 0; clockRuntime = 0; distance = std::numeric_limits<double>::infinity(); time = distance;
+                                    distance = std::numeric_limits<double>::infinity(); time = distance;
                                     timePretime = 0; timeRuntime = 0;
                                     if (std::get<2>(algorithms[algorithmIndex]))
                                         needsPreprocessing = true;
@@ -1095,9 +1089,9 @@ namespace at
                                     {
                                         needsPreprocessing = false;
                                         std::function<void(unsigned int, Vertex*, Edge*, unsigned long)> func = std::get<1>(algorithms[algorithmIndex]);
-                                        clock_t beg = clock(); func(0, nullptr, nullptr, 0); clock_t end = clock();
-                                        clockPretime = end - beg;
-                                        timePretime = clockPretime / 1000000.f;
+                                        sf::Clock clock;
+                                        func(0, nullptr, nullptr, 0);
+                                        timePretime = clock.getElapsedTime().asSeconds();
                                     } else needsPreprocessing = false;
                                 }
                             }
@@ -1121,11 +1115,9 @@ namespace at
                                 if ((std::get<1>(algorithms[algorithmIndex])) != nullptr)
                                 {
                                     std::function<void(unsigned int, Vertex*, Edge*, unsigned long)> func = std::get<1>(algorithms[algorithmIndex]);
-                                    clock_t beg = clock();
+                                    sf::Clock clock;
                                     func(0, nullptr, nullptr, 0);
-                                    clock_t end = clock();
-                                    clockPretime = end - beg;
-                                    timePretime = clockPretime / 1000000.f;
+                                    timePretime = clock.getElapsedTime().asSeconds();
                                 }
                                 needsPreprocessing = false;
                             }
@@ -1204,7 +1196,7 @@ namespace at
                 float ybegin; if (y > 0) ybegin = y - int(y/zone)*(zone) - zone; else ybegin = y - int(y/zone)*(zone);
                 zonesSprite.setPosition(xbegin *gs::scale*scale, ybegin *gs::scale*scale);*/
             }
-            else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Q)
+            else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Q)
             {
                 if (source != nullptr)
                     source->highlighted = false;
@@ -1365,7 +1357,7 @@ namespace at
                         graph->shortestPath.clear();
                     } graph->shortestPath.clear();
                     
-                    clockPretime = 0; clockRuntime = 0; distance = std::numeric_limits<double>::infinity(); time = distance;
+                    distance = std::numeric_limits<double>::infinity(); time = distance;
                     timePretime = 0; timeRuntime = 0;
                     if (algorithmIndex < algorithms.size())
                     {
@@ -1375,9 +1367,9 @@ namespace at
                         {
                             needsPreprocessing = false;
                             std::function<void(unsigned int, Vertex*, Edge*, unsigned long)> func = std::get<1>(algorithms[algorithmIndex]);
-                            clock_t beg = clock(); func(0, nullptr, nullptr, 0); clock_t end = clock();
-                            clockPretime = end - beg;
-                            timePretime = clockPretime / 1000000.f;
+                            sf::Clock clock;
+                            func(0, nullptr, nullptr, 0);
+                            timePretime = clock.getElapsedTime().asSeconds();
                         } else needsPreprocessing = false;
                     }
                     
@@ -1469,7 +1461,7 @@ namespace at
                 info.setString(string); window->draw(info);
                 yy += info.getLocalBounds().height + 2*gs::scale;
                 
-                string = L"(выполнено за: "; string += std::to_wstring(clockRuntime); string += L")";
+                string = L"(выполнено за: "; string += std::to_wstring(timeRuntime); string += L")";
                 info.setPosition(info.getPosition().x, yy);
                 info.setString(string); window->draw(info);
                 yy += (info.getLocalBounds().height + 2*gs::scale)*2;
@@ -1584,7 +1576,7 @@ namespace at
                 info.setString(string);
                 yy += info.getLocalBounds().height + 2*gs::scale;
                 
-                string = L"(выполнено за: "; string += std::to_wstring(clockRuntime); string += L")";
+                string = L"(выполнено за: "; string += std::to_wstring(timeRuntime); string += L")";
                 info.setString(string);
                 yy += (info.getLocalBounds().height + 2*gs::scale)*2;
                 
