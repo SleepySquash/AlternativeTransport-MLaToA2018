@@ -385,14 +385,14 @@ namespace at
         for (auto v : vertices) {
             ParallelDijkstraHolder* data = reinterpret_cast<ParallelDijkstraHolder*>(v->data);
             data->out = 0;
-            data->weight = std::numeric_limits<double>::infinity(); }
+            data->weight = data->weightR = std::numeric_limits<double>::infinity(); }
         ParallelDijkstraHolder* s_data = reinterpret_cast<ParallelDijkstraHolder*>(s->data);
         ParallelDijkstraHolder* t_data = reinterpret_cast<ParallelDijkstraHolder*>(t->data);
         s_data->previous = nullptr;
-        t_data->previous = nullptr;
+        t_data->previousR = nullptr;
         
         s_data->weight = 0;
-        t_data->weight = 0;
+        t_data->weightR = 0;
         
         std::thread reverseDijkstra(&Graph::ReverseMomentDijkstra, this, si, ti);
         
@@ -405,7 +405,6 @@ namespace at
             if (parallelEnding)
                 break;
             
-            cout << "s";
             Vertex* current = stack.top().second;
             ParallelDijkstraHolder* data = reinterpret_cast<ParallelDijkstraHolder*>(current->data);
             data->out = 1;
@@ -421,7 +420,7 @@ namespace at
                     parallelEnding = true;
                     break;
                 }
-                else if (e->out && !to_data->out)
+                else if (!to_data->out && e->out)
                 {
                     if (to_data->weight > data->weight + e->weight)
                     {
@@ -432,18 +431,18 @@ namespace at
                 }
             }
         }
-        reverseDijkstra.join(); cout << endl;
+        reverseDijkstra.join();
         
         
         ParallelDijkstraHolder* sEnd_data = reinterpret_cast<ParallelDijkstraHolder*>(parallel_sEnd->data);
         ParallelDijkstraHolder* tEnd_data = reinterpret_cast<ParallelDijkstraHolder*>(parallel_tEnd->data);
-        if (sEnd_data->weight != std::numeric_limits<double>::infinity() && tEnd_data->weight != std::numeric_limits<double>::infinity())
+        if (sEnd_data->weight != std::numeric_limits<double>::infinity() && tEnd_data->weightR != std::numeric_limits<double>::infinity())
         {
             Vertex* current = parallel_tEnd;
             while (current != nullptr)
             {
                 shortestPath.push_back(current);
-                current = reinterpret_cast<ParallelDijkstraHolder*>(current->data)->previous;
+                current = reinterpret_cast<ParallelDijkstraHolder*>(current->data)->previousR;
             }
             current = parallel_sEnd;
             while (current != nullptr)
@@ -454,7 +453,7 @@ namespace at
         }
         
         Edge* connection = parallel_sEnd->Connection(parallel_tEnd);
-        return sEnd_data->weight + tEnd_data->weight + connection->weight;
+        return sEnd_data->weight + tEnd_data->weightR + connection->weight;
     }
     void Graph::ReverseMomentDijkstra(unsigned long si, unsigned long ti)
     {
@@ -469,7 +468,6 @@ namespace at
             if (parallelEnding)
                 break;
             
-            cout << "r";
             Vertex* current = stack.top().second;
             ParallelDijkstraHolder* data = reinterpret_cast<ParallelDijkstraHolder*>(current->data);
             data->out = 2;
@@ -485,13 +483,13 @@ namespace at
                     parallelEnding = true;
                     break;
                 }
-                else if (e->in && !to_data->out)
+                else if (!to_data->out && e->in)
                 {
-                    if (to_data->weight > data->weight + e->weight)
+                    if (to_data->weightR > data->weightR + e->weight)
                     {
-                        to_data->weight = data->weight + e->weight;
-                        to_data->previous = current;
-                        if (e->to != s) stack.push(make_pair(to_data->weight, e->to));
+                        to_data->weightR = data->weightR + e->weight;
+                        to_data->previousR = current;
+                        if (e->to != s) stack.push(make_pair(to_data->weightR, e->to));
                     }
                 }
             }
@@ -528,14 +526,14 @@ namespace at
         for (auto v : vertices) {
             ParallelDijkstraHolder* data = reinterpret_cast<ParallelDijkstraHolder*>(v->data);
             data->out = 0;
-            data->weight = std::numeric_limits<double>::infinity(); }
+            data->weight = data->weightR = std::numeric_limits<double>::infinity(); }
         ParallelDijkstraHolder* s_data = reinterpret_cast<ParallelDijkstraHolder*>(s->data);
         ParallelDijkstraHolder* t_data = reinterpret_cast<ParallelDijkstraHolder*>(t->data);
         s_data->previous = nullptr;
-        t_data->previous = nullptr;
+        t_data->previousR = nullptr;
         
         s_data->weight = 0;
-        t_data->weight = 0;
+        t_data->weightR = 0;
         
         std::thread reverseDijkstra(&Graph::ReverseDijkstra, this, si, ti);
         
@@ -556,7 +554,6 @@ namespace at
                     break;
             }
             
-            cout << "s";
             Vertex* current = stack.top().second;
             ParallelDijkstraHolder* data = reinterpret_cast<ParallelDijkstraHolder*>(current->data);
             data->out = 1;
@@ -570,7 +567,7 @@ namespace at
                     encounters.push_back(make_pair(current, e->to));
                     
                     if (mightEndAmount == 0)
-                        mightEndAmount = 5;
+                        mightEndAmount = parallelStepsDone;
                 }
                 else if (e->out && !to_data->out)
                 {
@@ -590,26 +587,29 @@ namespace at
         sEnd = nullptr; tEnd = nullptr;
         for (auto p : encounters)
         {
-            ParallelDijkstraHolder* sEnd_data = reinterpret_cast<ParallelDijkstraHolder*>(p.first->data);
-            ParallelDijkstraHolder* tEnd_data = reinterpret_cast<ParallelDijkstraHolder*>(p.second->data);
-            Edge* connection = p.first->Connection(p.second);
-            if (sEnd_data->weight + tEnd_data->weight + connection->weight < minWeight)
+            if (p.first != nullptr && p.second != nullptr)
             {
-                minWeight = sEnd_data->weight + tEnd_data->weight + connection->weight;
-                sEnd = p.first;
-                tEnd = p.second;
+                ParallelDijkstraHolder* sEnd_data = reinterpret_cast<ParallelDijkstraHolder*>(p.first->data);
+                ParallelDijkstraHolder* tEnd_data = reinterpret_cast<ParallelDijkstraHolder*>(p.second->data);
+                Edge* connection = p.first->Connection(p.second);
+                if (sEnd_data->weight + tEnd_data->weightR + connection->weight < minWeight)
+                {
+                    minWeight = sEnd_data->weight + tEnd_data->weightR + connection->weight;
+                    sEnd = p.first;
+                    tEnd = p.second;
+                }
             }
         }
         
         ParallelDijkstraHolder* sEnd_data = reinterpret_cast<ParallelDijkstraHolder*>(sEnd->data);
         ParallelDijkstraHolder* tEnd_data = reinterpret_cast<ParallelDijkstraHolder*>(tEnd->data);
-        if (sEnd_data->weight != std::numeric_limits<double>::infinity() && tEnd_data->weight != std::numeric_limits<double>::infinity())
+        if (sEnd_data->weight != std::numeric_limits<double>::infinity() && tEnd_data->weightR != std::numeric_limits<double>::infinity())
         {
             Vertex* current = tEnd;
             while (current != nullptr)
             {
                 shortestPath.push_back(current);
-                current = reinterpret_cast<ParallelDijkstraHolder*>(current->data)->previous;
+                current = reinterpret_cast<ParallelDijkstraHolder*>(current->data)->previousR;
             }
             current = sEnd;
             while (current != nullptr)
@@ -642,7 +642,6 @@ namespace at
                     break;
             }
             
-            cout << "r";
             Vertex* current = stack.top().second;
             ParallelDijkstraHolder* data = reinterpret_cast<ParallelDijkstraHolder*>(current->data);
             data->out = 2;
@@ -655,14 +654,14 @@ namespace at
                 {
                     encounters.push_back(make_pair(e->to, current));
                     if (mightEndAmount == 0)
-                        mightEndAmount = 5;
+                        mightEndAmount = parallelStepsDone;
                 }
                 else if (e->in && !to_data->out)
                 {
-                    if (to_data->weight > data->weight + e->weight)
+                    if (to_data->weightR > data->weightR + e->weight)
                     {
-                        to_data->weight = data->weight + e->weight;
-                        to_data->previous = current;
+                        to_data->weightR = data->weightR + e->weight;
+                        to_data->previousR = current;
                         if (e->to != s) stack.push(make_pair(to_data->weight, e->to));
                     }
                 }
@@ -937,6 +936,248 @@ namespace at
             if (v->data != nullptr) delete v->data;
             v->data = nullptr;
         }
+    }
+    
+    
+    
+    void Graph::ArcFlags_ParallelDijkstra1(Vertex* s, Vertex* t)
+    {
+        for (auto v : vertices) {
+            ArcDijkstraHolder* data = reinterpret_cast<ArcDijkstraHolder*>(v->data);
+            data->out = false;
+            data->weight = std::numeric_limits<double>::infinity(); }
+        ArcDijkstraHolder* s_data = reinterpret_cast<ArcDijkstraHolder*>(s->data);
+        ArcDijkstraHolder* t_data = reinterpret_cast<ArcDijkstraHolder*>(t->data);
+        s_data->previous = nullptr;
+        t_data->previous = nullptr;
+        
+        priority_queue<pair<double, Vertex*>, vector<pair<double, Vertex*>>, PairByDistanceComparator> stack;
+        s_data->weight = 0;
+        stack.push(make_pair(0, s));
+        
+        while (!stack.empty())
+        {
+            Vertex* current = stack.top().second;
+            ArcDijkstraHolder* data = reinterpret_cast<ArcDijkstraHolder*>(current->data);
+            stack.pop();
+            
+            for (auto e : *current)
+            {
+                ArcDijkstraHolder* to_data = reinterpret_cast<ArcDijkstraHolder*>(e->to->data);
+                if (e->out && !to_data->out)
+                {
+                    if (to_data->weight > data->weight + e->weight)
+                    {
+                        to_data->weight = data->weight + e->weight;
+                        to_data->previous = current;
+                        if (e->to != t) stack.push(make_pair(to_data->weight, e->to));
+                    }
+                }
+            }
+            data->out = true;
+        }
+        if (t_data->weight != 0 && t_data->weight != std::numeric_limits<double>::infinity())
+        {
+            Vertex* current = t;
+            while (current != nullptr)
+            {
+                shortestPath.insert(shortestPath.begin(), current);
+                current = reinterpret_cast<ArcDijkstraHolder*>(current->data)->previous;
+            }
+        }
+    }
+    void Graph::ArcFlags_ParallelDijkstra2(Vertex* s, Vertex* t)
+    {
+        for (auto v : vertices) {
+            ArcParDijkstraHolder* data = reinterpret_cast<ArcParDijkstraHolder*>(v->data);
+            data->out2 = false;
+            data->weight2 = std::numeric_limits<double>::infinity(); }
+        ArcParDijkstraHolder* s_data = reinterpret_cast<ArcParDijkstraHolder*>(s->data);
+        ArcParDijkstraHolder* t_data = reinterpret_cast<ArcParDijkstraHolder*>(t->data);
+        s_data->previous2 = nullptr;
+        t_data->previous2 = nullptr;
+        
+        priority_queue<pair<double, Vertex*>, vector<pair<double, Vertex*>>, PairByDistanceComparator> stack;
+        s_data->weight2 = 0;
+        stack.push(make_pair(0, s));
+        
+        while (!stack.empty())
+        {
+            Vertex* current = stack.top().second;
+            ArcParDijkstraHolder* data = reinterpret_cast<ArcParDijkstraHolder*>(current->data);
+            stack.pop();
+            
+            for (auto e : *current)
+            {
+                ArcParDijkstraHolder* to_data = reinterpret_cast<ArcParDijkstraHolder*>(e->to->data);
+                if (e->out && !to_data->out2)
+                {
+                    if (to_data->weight2 > data->weight2 + e->weight)
+                    {
+                        to_data->weight2 = data->weight2 + e->weight;
+                        to_data->previous2 = current;
+                        if (e->to != t) stack.push(make_pair(to_data->weight2, e->to));
+                    }
+                }
+            }
+            data->out2 = true;
+        }
+        if (t_data->weight2 != 0 && t_data->weight2 != std::numeric_limits<double>::infinity())
+        {
+            Vertex* current = t;
+            while (current != nullptr)
+            {
+                shortestPath_th.insert(shortestPath_th.begin(), current);
+                current = reinterpret_cast<ArcParDijkstraHolder*>(current->data)->previous2;
+            }
+        }
+    }
+    void Graph::ArcFlags_ParallelPreprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index)
+    {
+        int axesZones{ 3 };
+        
+        if (mode == 0)
+        {
+            for (auto v : vertices)
+            {
+                if (v->data != nullptr)
+                    delete v->data;
+                v->data = new ArcParDijkstraHolder();
+            }
+            
+            // Разбиваем на области
+            ArcFlags_ZoneDivision(this, axesZones);
+            
+            for (auto v : vertices)
+            {
+                for (auto e : v->edges)
+                {
+                    if (e->data != nullptr)
+                        delete e->data;
+                    e->data = new ArcFlagsHolder();
+                    ArcFlagsHolder* data = reinterpret_cast<ArcFlagsHolder*>(e->data);
+                    data->flags = new bool[ZonesNum]();
+                }
+            }
+            
+            // Определяем единицы в массивах
+            for (auto v : vertices)
+                for (auto e : v->edges)
+                {
+                    ArcDijkstraHolder* ve_data = reinterpret_cast<ArcDijkstraHolder*>(v->data);
+                    ArcDijkstraHolder* to_data = reinterpret_cast<ArcDijkstraHolder*>(e->to->data);
+                    if (ve_data->zone == to_data->zone)
+                    {
+                        ArcFlagsHolder* data = reinterpret_cast<ArcFlagsHolder*>(e->data);
+                        data->flags[ve_data->zone] = true;
+                    }
+                }
+            
+            std::thread parallel(&Graph::ArcFlags_PreprocessingThread, this);
+            for (unsigned long i = 0; i < vertices.size()/2; ++i)
+                for (unsigned long j = 0; j < vertices.size(); ++j)
+                    if (i != j)
+                    {
+                        // Запускаем алгоритм Дейкстры и добавляем true рёбрам из кратчайшего пути в ячейке v2->zone.
+                        ArcParDijkstraHolder* v1_data = reinterpret_cast<ArcParDijkstraHolder*>(vertices[i]->data);
+                        ArcParDijkstraHolder* v2_data = reinterpret_cast<ArcParDijkstraHolder*>(vertices[j]->data);
+                        if (v1_data->zone != v2_data->zone)
+                        {
+                            shortestPath.clear();
+                            ArcFlags_ParallelDijkstra1(vertices[i], vertices[j]);
+                            if (shortestPath.size() != 0)
+                                for (int i = 0; i < shortestPath.size() - 1; ++i)
+                                {
+                                    Edge* e = shortestPath[i]->Connection(shortestPath[i + 1]);
+                                    ArcFlagsHolder* data = reinterpret_cast<ArcFlagsHolder*>(e->data);
+                                    data->flags[v2_data->zone] = true;
+                                }
+                        }
+                    }
+            shortestPath.clear();
+            parallel.join();
+        }
+    }
+    void Graph::ArcFlags_PreprocessingThread()
+    {
+        for (unsigned long i = vertices.size()/2; i < vertices.size(); ++i)
+            for (unsigned long j = 0; j < vertices.size(); ++j)
+                if (i != j)
+                {
+                    // Запускаем алгоритм Дейкстры и добавляем true рёбрам из кратчайшего пути в ячейке v2->zone.
+                    ArcParDijkstraHolder* v1_data = reinterpret_cast<ArcParDijkstraHolder*>(vertices[i]->data);
+                    ArcParDijkstraHolder* v2_data = reinterpret_cast<ArcParDijkstraHolder*>(vertices[j]->data);
+                    if (v1_data->zone != v2_data->zone)
+                    {
+                        shortestPath_th.clear();
+                        ArcFlags_ParallelDijkstra2(vertices[i], vertices[j]);
+                        if (shortestPath_th.size() != 0)
+                            for (int i = 0; i < shortestPath_th.size() - 1; ++i)
+                            {
+                                Edge* e = shortestPath_th[i]->Connection(shortestPath_th[i + 1]);
+                                ArcFlagsHolder* data = reinterpret_cast<ArcFlagsHolder*>(e->data);
+                                data->flags[v2_data->zone] = true;
+                            }
+                    }
+                }
+        shortestPath_th.clear();
+    }
+    double Graph::ParallelArcFlags(unsigned long si, unsigned long ti)
+    {
+        Vertex* s = vertices[si];
+        Vertex* t = vertices[ti];
+        
+        for (auto v : vertices) {
+            ArcParDijkstraHolder* data = reinterpret_cast<ArcParDijkstraHolder*>(v->data);
+            data->out = false;
+            data->weight = std::numeric_limits<double>::infinity(); }
+        ArcParDijkstraHolder* s_data = reinterpret_cast<ArcParDijkstraHolder*>(s->data);
+        ArcParDijkstraHolder* t_data = reinterpret_cast<ArcParDijkstraHolder*>(t->data);
+        s_data->previous = nullptr;
+        t_data->previous = nullptr;
+        unsigned long tZone{ t_data->zone };
+        
+        priority_queue<pair<double, Vertex*>, vector<pair<double, Vertex*>>, PairByDistanceComparator> stack;
+        s_data->weight = 0;
+        stack.push(make_pair(0, s));
+        
+        while (!stack.empty())
+        {
+            Vertex* current = stack.top().second;
+            ArcParDijkstraHolder* data = reinterpret_cast<ArcParDijkstraHolder*>(current->data);
+            stack.pop();
+            
+            for (auto e : *current)
+            {
+                ArcFlagsHolder* arc_data = reinterpret_cast<ArcFlagsHolder*>(e->data);
+                // ЕСЛИ ребро e имеет единицу в массиве, то только тогда его рассматриваем
+                if (arc_data->flags[tZone])
+                {
+                    ArcParDijkstraHolder* to_data = reinterpret_cast<ArcParDijkstraHolder*>(e->to->data);
+                    if (e->out && !to_data->out)
+                    {
+                        if (to_data->weight > data->weight + e->weight)
+                        {
+                            to_data->weight = data->weight + e->weight;
+                            to_data->previous = current;
+                            if (e->to != t) stack.push(make_pair(to_data->weight, e->to));
+                        }
+                    }
+                }
+            }
+            data->out = true;
+        }
+        if (t_data->weight != 0 && t_data->weight != std::numeric_limits<double>::infinity())
+        {
+            Vertex* current = t;
+            while (current != nullptr)
+            {
+                shortestPath.insert(shortestPath.begin(), current);
+                current = reinterpret_cast<ArcParDijkstraHolder*>(current->data)->previous;
+            }
+        }
+        
+        return t_data->weight;
     }
     
     

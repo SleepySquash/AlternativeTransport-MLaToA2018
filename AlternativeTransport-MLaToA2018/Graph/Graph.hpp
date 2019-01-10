@@ -52,9 +52,13 @@ namespace at
     };
     struct ParallelDijkstraHolder : DataHolder
     {
-        double weight{ 0 };
         char out{ 0 };
+        
+        double weight{ 0 };
         Vertex* previous{ nullptr };
+        
+        double weightR{ 0 };
+        Vertex* previousR{ nullptr };
     };
     struct ArcDijkstraHolder : DataHolder
     {
@@ -67,6 +71,19 @@ namespace at
     {
         bool* flags{ nullptr };
         ~ArcFlagsHolder();
+    };
+    
+    struct ArcParDijkstraHolder : DataHolder
+    {
+        unsigned long zone{ 0 };
+        
+        double weight{ 0 };
+        bool out{ false };
+        Vertex* previous{ nullptr };
+        
+        double weight2{ 0 };
+        bool out2{ false };
+        Vertex* previous2{ nullptr };
     };
     
     struct Edge
@@ -152,6 +169,7 @@ namespace at
         double ParallelMomentDijkstra(unsigned long si, unsigned long ti);
         void ReverseMomentDijkstra(unsigned long si, unsigned long ti);
         
+        char parallelStepsDone{ 30 };
         char mightEndAmount{ 0 }, sEndAmount{ 0 }, tEndAmount{ 0 };
         Vertex* sEnd{ nullptr }, *tEnd{ nullptr };
         vector<pair<Vertex*, Vertex*>> encounters;
@@ -173,6 +191,13 @@ namespace at
         void ArcFlags_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
         double ArcFlags(unsigned long si, unsigned long ti);
         void ArcFlags_Destroy();
+        
+        vector<Vertex*> shortestPath_th;
+        void ArcFlags_ParallelDijkstra1(Vertex* s, Vertex* t);
+        void ArcFlags_ParallelDijkstra2(Vertex* s, Vertex* t);
+        void ArcFlags_ParallelPreprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        void ArcFlags_PreprocessingThread();
+        double ParallelArcFlags(unsigned long si, unsigned long ti);
         
         
         void TableLookup_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);

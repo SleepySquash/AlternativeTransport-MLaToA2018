@@ -27,21 +27,16 @@ namespace at
                 using std::placeholders::_3;
                 using std::placeholders::_4;
                 
-                algorithmIndex = 1; /// <- Включённый изначально алгоритм по номеру
+                algorithmIndex = 0; /// <- Включённый изначально алгоритм по номеру
                 
                 /// Добавлять по типу:
                 ///     make_tuple(  НАЗВАНИЕ,  ФУНКЦИЯ_ПРЕДОБРАБОТКИ,  ПРЕДОБРАБОТКА_ТЯЖЁЛАЯ,  ФУНКЦИЯ_ЗАПРОСА  )
-                algorithms.push_back(std::make_tuple(L"Slow Дейкстра",
-                                                     std::bind( &Graph::SlowDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
-                                                     false,
-                                                     std::bind( &Graph::SlowDijkstra, graph, _1, _2 ),
-                                                     std::bind( &Graph::SlowDijkstra_Destroy, graph) ));
                 algorithms.push_back(std::make_tuple(L"Дейкстра",
                                                      std::bind( &Graph::DijkstraPreprocessing, graph, _1, _2, _3, _4 ),
                                                      false,
                                                      std::bind( &Graph::Dijkstra, graph, _1, _2 ),
                                                      std::bind( &Graph::DijkstraDestroy, graph) ));
-                algorithms.push_back(std::make_tuple(L"ParMoment Дейкстра",
+                algorithms.push_back(std::make_tuple(L"Moment Дейкстра",
                                                      std::bind( &Graph::ParallelDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
                                                      false,
                                                      std::bind( &Graph::ParallelMomentDijkstra, graph, _1, _2 ),
@@ -51,21 +46,31 @@ namespace at
                                                      false,
                                                      std::bind( &Graph::ParallelDijkstra, graph, _1, _2 ),
                                                      std::bind( &Graph::ParallelDijkstra_Destroy, graph) ));
-                algorithms.push_back(std::make_tuple(L"External Дейкстра",
-                                                     std::bind( &Graph::ExternalDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
-                                                     false,
-                                                     std::bind( &Graph::ExternalDijkstra, graph, _1, _2 ),
-                                                     std::bind( &Graph::ExternalDijkstra_Unload, graph) ));
                 algorithms.push_back(std::make_tuple(L"Arc Flags",
                                                      std::bind( &Graph::ArcFlags_Preprocessing, graph, _1, _2, _3, _4 ),
                                                      true,
                                                      std::bind( &Graph::ArcFlags, graph, _1, _2 ),
+                                                     std::bind( &Graph::ArcFlags_Destroy, graph) ));
+                algorithms.push_back(std::make_tuple(L"Parallel ArcFlags",
+                                                     std::bind( &Graph::ArcFlags_ParallelPreprocessing, graph, _1, _2, _3, _4 ),
+                                                     true,
+                                                     std::bind( &Graph::ParallelArcFlags, graph, _1, _2 ),
                                                      std::bind( &Graph::ArcFlags_Destroy, graph) ));
                 algorithms.push_back(std::make_tuple(L"Таблица",
                                                      std::bind( &Graph::TableLookup_Preprocessing, graph, _1, _2, _3, _4 ),
                                                      true,
                                                      std::bind( &Graph::TableLookup, graph, _1, _2 ),
                                                      std::bind( &Graph::TableLookup_Unload, graph) ));
+                algorithms.push_back(std::make_tuple(L"Slow Дейкстра",
+                                                     std::bind( &Graph::SlowDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
+                                                     false,
+                                                     std::bind( &Graph::SlowDijkstra, graph, _1, _2 ),
+                                                     std::bind( &Graph::SlowDijkstra_Destroy, graph) ));
+                algorithms.push_back(std::make_tuple(L"External Дейкстра",
+                                                     std::bind( &Graph::ExternalDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
+                                                     false,
+                                                     std::bind( &Graph::ExternalDijkstra, graph, _1, _2 ),
+                                                     std::bind( &Graph::ExternalDijkstra_Unload, graph) ));
             }
         }
         void GraphMap::Init()
@@ -523,7 +528,7 @@ namespace at
             if (wasHighlighted)
                 circle.setFillColor(sf::Color::White);
             
-            if (algorithmIndex == 2 || algorithmIndex == 3)
+            if (algorithmIndex == 1 || algorithmIndex == 2)
             {
                 if (!graph->shortestPath.empty())
                 {
@@ -548,7 +553,7 @@ namespace at
                     circle.setFillColor(sf::Color::White);
                 }
             }
-            if (algorithmIndex == 5)
+            if (algorithmIndex == 3 || algorithmIndex == 4)
             {
                 if (!needsPreprocessing && arcFlagsZonesAxes == 3)
                 {
