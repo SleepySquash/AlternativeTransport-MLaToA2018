@@ -546,6 +546,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = A2VZ8FCF86;
 				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks/;
+				GCC_OPTIMIZATION_LEVEL = 1;
 				INFOPLIST_FILE = "$(SRCROOT)/AlternativeTransport-MLaToA2018/AlternativeTransport-MLaToA2018.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "melancholyhill.AlternativeTransport-MLaToA2018";
@@ -568,6 +569,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = A2VZ8FCF86;
 				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks/;
+				GCC_OPTIMIZATION_LEVEL = 1;
 				INFOPLIST_FILE = "$(SRCROOT)/AlternativeTransport-MLaToA2018/AlternativeTransport-MLaToA2018.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "melancholyhill.AlternativeTransport-MLaToA2018";

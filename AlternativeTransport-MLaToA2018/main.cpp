@@ -38,6 +38,11 @@ void DrawInParallel(sf::RenderWindow* window, EntitySystem* system)
     window->display();
 }
 
+void ImThread(int sdads, int gf)
+{
+    int ds = sdads + gf;
+}
+
 int main()
 {
 #ifdef _WIN32 
@@ -175,7 +180,7 @@ int main()
             }
         }
         
-#ifdef _WIN32
+/*#ifdef _WIN32
         system.Update(clock.restart());
         
         window.clear();
@@ -185,7 +190,12 @@ int main()
         std::thread drawThread(DrawInParallel, &window, &system);
         system.Update(clock.restart());
         drawThread.join();
-#endif
+#endif*/
+        system.Update(clock.restart());
+        
+        window.clear();
+        system.Draw(&window);
+        window.display();
     }
 
     system.Destroy();

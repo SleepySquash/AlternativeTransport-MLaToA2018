@@ -36,7 +36,8 @@ using std::make_pair;
 namespace at
 {
     struct Graph;
-    void ArcFlags_ZoneDivision(Graph* graph, int axesZones);
+    void ArcFlags_ZoneDivision(int axesZones);
+    void Overlay_ZoneDivision(int axesZones);
     namespace GraphComponents
     {
         struct VertexInfo;
@@ -47,6 +48,13 @@ namespace at
     struct DijkstraHolder : DataHolder
     {
         double weight{ 0 };
+        bool out{ false };
+        Vertex* previous{ nullptr };
+    };
+    struct TDijkstraHolder : DataHolder
+    {
+        unsigned char time{ 0 };
+        double weight{ std::numeric_limits<double>::infinity() };
         bool out{ false };
         Vertex* previous{ nullptr };
     };
@@ -84,6 +92,14 @@ namespace at
         double weight2{ 0 };
         bool out2{ false };
         Vertex* previous2{ nullptr };
+    };
+    
+    struct OverlayHolder : DataHolder
+    {
+        unsigned long zone{ 0 };
+        double weight{ 0 };
+        bool out{ false };
+        Vertex* previous{ nullptr };
     };
     
     struct Edge
@@ -154,14 +170,16 @@ namespace at
         void Clear();
         
         
-        void SlowDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double SlowDijkstra(unsigned long si, unsigned long ti);
-        void SlowDijkstra_Destroy();
-        
-        
         void DijkstraPreprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
         double Dijkstra(unsigned long si, unsigned long ti);
         void DijkstraDestroy();
+        
+        double OriginalDijkstra(unsigned long si, unsigned long ti);
+        
+        
+        unsigned char timeLabel{ 0 };
+        void TDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double TDijkstra(unsigned long si, unsigned long ti);
         
         
         bool parallelEnding{ false };
@@ -169,7 +187,7 @@ namespace at
         double ParallelMomentDijkstra(unsigned long si, unsigned long ti);
         void ReverseMomentDijkstra(unsigned long si, unsigned long ti);
         
-        char parallelStepsDone{ 30 };
+        char parallelStepsDone{ 30 }; /// <- КОЛИЧЕСТВО ШАГОВ ПОСЛЕ НАХОЖДЕНИЯ СОПРИКОСНОВЕНИЯ
         char mightEndAmount{ 0 }, sEndAmount{ 0 }, tEndAmount{ 0 };
         Vertex* sEnd{ nullptr }, *tEnd{ nullptr };
         vector<pair<Vertex*, Vertex*>> encounters;
@@ -186,6 +204,7 @@ namespace at
         void ExternalDijkstra_Unload();
         
         
+        int arcFlagsZonesAxes{ 6 }; /// <- КОЛИЧЕСТВО ЗОН ПО КАЖДОЙ ИЗ ОСИ (общее количество = квадрат этого числа)
         unsigned long ZonesNum{ 0 };
         void ArcFlags_Dijkstra(Vertex* s, Vertex* t);
         void ArcFlags_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
@@ -203,6 +222,19 @@ namespace at
         void TableLookup_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
         double TableLookup(unsigned long si, unsigned long ti);
         void TableLookup_Unload();
+        
+        
+        void CH_Dijkstra(Vertex* s, Vertex* t);
+        void CH_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double CH(unsigned long si, unsigned long ti);
+        void CH_Destroy();
+        
+        
+        int overlayZonesAxes{ 3 };
+        void Overlay_Dijkstra(Vertex* s, Vertex* t);
+        void Overlay_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
+        double OverlayGraph(unsigned long si, unsigned long ti);
+        void Overlay_Destroy();
         
         
         inline std::vector<Vertex*>::iterator begin() { return vertices.begin(); }

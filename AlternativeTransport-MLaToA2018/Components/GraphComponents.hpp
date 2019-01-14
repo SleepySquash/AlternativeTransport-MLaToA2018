@@ -58,6 +58,7 @@ namespace at
             GUIButton button_Action;
             GUIButton button_DoPreprocessing;
             GUIButton button_Graph;
+            GUIButton button_ArcFlagsZones;
             
             // TODO: Make it actually work
             bool contentLoaded{ false };
@@ -121,6 +122,7 @@ namespace at
             float x{ 0 }, y{ 0 }, xright{ 0 }, ybottom{ 0 };
             
             int arcFlagsZonesAxes{ 0 };
+            int overlayZonesAxes{ 0 };
             float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
             
             GraphMap(Graph* graph);

@@ -22,6 +22,8 @@ namespace at
             
             if (graph != nullptr)
             {
+                arcFlagsZonesAxes = graph->arcFlagsZonesAxes;
+                
                 using std::placeholders::_1;
                 using std::placeholders::_2;
                 using std::placeholders::_3;
@@ -61,11 +63,16 @@ namespace at
                                                      true,
                                                      std::bind( &Graph::TableLookup, graph, _1, _2 ),
                                                      std::bind( &Graph::TableLookup_Unload, graph) ));
-                algorithms.push_back(std::make_tuple(L"Slow Дейкстра",
-                                                     std::bind( &Graph::SlowDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
+                algorithms.push_back(std::make_tuple(L"Original Дейкстра",
+                                                     std::bind( &Graph::DijkstraPreprocessing, graph, _1, _2, _3, _4 ),
                                                      false,
-                                                     std::bind( &Graph::SlowDijkstra, graph, _1, _2 ),
-                                                     std::bind( &Graph::SlowDijkstra_Destroy, graph) ));
+                                                     std::bind( &Graph::OriginalDijkstra, graph, _1, _2 ),
+                                                     std::bind( &Graph::DijkstraDestroy, graph) ));
+                /*algorithms.push_back(std::make_tuple(L"TimeLabel Дейкстра",
+                                                     std::bind( &Graph::TDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
+                                                     false,
+                                                     std::bind( &Graph::TDijkstra, graph, _1, _2 ),
+                                                     std::bind( &Graph::DijkstraDestroy, graph) ));*/
                 algorithms.push_back(std::make_tuple(L"External Дейкстра",
                                                      std::bind( &Graph::ExternalDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
                                                      false,
@@ -153,6 +160,11 @@ namespace at
             button_Graph.SetString(L"Автомобильный");
             button_Graph.characterSize = 22;
             button_Graph.halign = at::GUIButton::halignEnum::left;
+            
+            button_ArcFlagsZones.SetFont(L"Arial.ttf");
+            button_ArcFlagsZones.SetString(L"[Задать кол-во зон по оси]");
+            button_ArcFlagsZones.characterSize = 22;
+            button_ArcFlagsZones.halign = at::GUIButton::halignEnum::left;
         }
         void GraphMap::Destroy()
         {
@@ -166,6 +178,7 @@ namespace at
             button_Action.Update(elapsedTime);
             button_DoPreprocessing.Update(elapsedTime);
             button_Graph.Update(elapsedTime);
+            button_ArcFlagsZones.Update(elapsedTime);
             
             if (contentUpdateTime > 0)
             {
@@ -555,7 +568,7 @@ namespace at
             }
             if (algorithmIndex == 3 || algorithmIndex == 4)
             {
-                if (!needsPreprocessing && arcFlagsZonesAxes == 3)
+                if (!needsPreprocessing && arcFlagsZonesAxes <= 3)
                 {
                     for (auto v : vertexes)
                     {
@@ -668,6 +681,17 @@ namespace at
                     info.setString(string); window->draw(info);
                     yy += (info.getLocalBounds().height + 2*gs::scale)*2;
                     
+                    if (algorithmIndex == 3 || algorithmIndex == 4)
+                    {
+                        info.setPosition(info.getPosition().x, yy); string = L"Зон по оси: " + std::to_wstring(arcFlagsZonesAxes);
+                        info.setString(string); window->draw(info); info.setFillColor(sf::Color::White);
+                        yy += info.getLocalBounds().height + 2*gs::scale;
+                        
+                        button_ArcFlagsZones.SetPosition(gs::width - panelShape.getSize().x + 6*gs::scale, yy);
+                        button_ArcFlagsZones.Draw(window);
+                        yy += (button_ArcFlagsZones.text.getLocalBounds().height + 5*gs::scale)*2;
+                    }
+                    
                     
                     string = L"Пошаговое управление"; info.setCharacterSize(25 * gs::scale);
                     info.setPosition(info.getPosition().x, yy);
@@ -751,6 +775,7 @@ namespace at
             button_Action.Resize(width, height);
             button_Graph.Resize(width, height);
             button_DoPreprocessing.Resize(width, height);
+            button_ArcFlagsZones.Resize(width, height);
             
             if (button_Algorithm.text.getLocalBounds().width + 20*gs::scale > panelShape.getSize().x)
                 button_Algorithm.text.setScale((float)panelShape.getSize().x / (button_Algorithm.text.getLocalBounds().width + 20*gs::scale), 1);
@@ -1167,6 +1192,42 @@ namespace at
                                             button_Graph.PollEvent(event);
                                             if (button_Graph.IsPressed())
                                                 { Clear(); Load(utf16(resourcePath()) + L"Data/Graph/eltech.txt"); }
+                                            else
+                                            {
+                                                if (algorithmIndex == 3 || algorithmIndex == 4)
+                                                {
+                                                    button_ArcFlagsZones.PollEvent(event);
+                                                    if (button_ArcFlagsZones.IsPressed())
+                                                    {
+                                                        if (graph->arcFlagsZonesAxes == 3)
+                                                            graph->arcFlagsZonesAxes = 6;
+                                                        else if (graph->arcFlagsZonesAxes == 6)
+                                                            graph->arcFlagsZonesAxes = 8;
+                                                        else if (graph->arcFlagsZonesAxes == 8)
+                                                            graph->arcFlagsZonesAxes = 16;
+                                                        else if (graph->arcFlagsZonesAxes == 16)
+                                                            graph->arcFlagsZonesAxes = 32;
+                                                        else if (graph->arcFlagsZonesAxes == 32)
+                                                            graph->arcFlagsZonesAxes = 256;
+                                                        else if (graph->arcFlagsZonesAxes == 256)
+                                                            graph->arcFlagsZonesAxes = 2;
+                                                        else if (graph->arcFlagsZonesAxes == 2)
+                                                            graph->arcFlagsZonesAxes = 3;
+                                                        else
+                                                            graph->arcFlagsZonesAxes = 3;
+                                                        arcFlagsZonesAxes = graph->arcFlagsZonesAxes;
+                                                        
+                                                        if (!graph->shortestPath.empty()) {
+                                                            for (auto v : graph->shortestPath)
+                                                                v->vertexinfo->highlighted = false;
+                                                            graph->shortestPath.clear();
+                                                        } graph->shortestPath.clear();
+                                                        distance = std::numeric_limits<double>::infinity(); time = distance;
+                                                        timePretime = 0; timeRuntime = 0;
+                                                        needsPreprocessing = true;
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1604,7 +1665,7 @@ namespace at
 
 namespace at
 {
-    void ArcFlags_ZoneDivision(Graph* graph, int axesZones)
+    void ArcFlags_ZoneDivision(int axesZones)
     {
         GraphComponents::GraphMap* map = gs::static_graphMap;
         //cout << map->leftBorderX << " " << map->rightBorderX << "  " << map->topBorderY << " " << map->bottomBorderY << endl;
@@ -1629,6 +1690,28 @@ namespace at
                     ArcDijkstraHolder* data = reinterpret_cast<ArcDijkstraHolder*>(v->vertex->data);
                     data->zone = i;
                 }
-        graph->ZonesNum = rects.size();
+        map->graph->ZonesNum = rects.size();
+    }
+    
+    void Overlay_ZoneDivision(int axesZones)
+    {
+        GraphComponents::GraphMap* map = gs::static_graphMap;
+        map->overlayZonesAxes = axesZones;
+        
+        std::vector<sf::FloatRect> rects; // Требуется +0.1f в связи с неточностью сравнения float по порядку.
+        float xStep = (map->rightBorderX - map->leftBorderX) / axesZones + 0.1f;
+        float yStep = (map->bottomBorderY - map->topBorderY) / axesZones + 0.1f;
+        for (float ix = map->leftBorderX; ix < map->rightBorderX; ix += xStep)
+            for (float iy = map->topBorderY; iy < map->bottomBorderY; iy += yStep)
+                rects.push_back(sf::FloatRect(ix, iy, xStep, yStep));
+        
+        for (auto v : map->vertexes)
+            for (int i = 0; i < rects.size(); ++i)
+                if (rects[i].contains(v->x, v->y))
+                {
+                    OverlayHolder* data = reinterpret_cast<OverlayHolder*>(v->vertex->data);
+                    data->zone = i;
+                }
+        map->graph->ZonesNum = rects.size();
     }
 }
