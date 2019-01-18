@@ -38,11 +38,6 @@ void DrawInParallel(sf::RenderWindow* window, EntitySystem* system)
     window->display();
 }
 
-void ImThread(int sdads, int gf)
-{
-    int ds = sdads + gf;
-}
-
 int main()
 {
 #ifdef _WIN32 
@@ -104,7 +99,7 @@ int main()
     
     
     sf::Clock clock;
-    window.setActive(false);
+    window.setActive();
     while (window.isOpen())
     {
         sf::Event event;
@@ -124,6 +119,8 @@ int main()
                     window.setFramerateLimit(gs::framerateNoFocus);
                     break;
 
+                case sf::Event::TouchEnded:
+                case sf::Event::TouchBegan:
                 case sf::Event::MouseButtonPressed:
                     system.PollEvent(event);
                     break;

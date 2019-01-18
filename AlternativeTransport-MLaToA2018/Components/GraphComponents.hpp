@@ -59,6 +59,7 @@ namespace at
             GUIButton button_DoPreprocessing;
             GUIButton button_Graph;
             GUIButton button_ArcFlagsZones;
+            GUIButton button_EnableDisable;
             
             // TODO: Make it actually work
             bool contentLoaded{ false };
@@ -90,7 +91,7 @@ namespace at
             enum class screenEnum { main, choosing_algorithm };
             screenEnum screen = screenEnum::main;
             unsigned long algorithmIndex{ 0 };
-            vector<std::tuple<std::wstring, std::function<void(unsigned int, Vertex*, Edge*, unsigned long)>, bool, std::function<double(unsigned long, unsigned long)>, std::function<void()>>> algorithms;
+            vector<std::tuple<std::wstring, std::function<void(unsigned int, Vertex*, Edge*, unsigned long)>, bool, std::function<double(Vertex*, Vertex*)>, std::function<void()>>> algorithms;
             
             int move_dx{ 0 }, move_dy{ 0 };
             
@@ -124,6 +125,9 @@ namespace at
             int arcFlagsZonesAxes{ 0 };
             int overlayZonesAxes{ 0 };
             float leftBorderX{ 0 }, rightBorderX{ 0 }, topBorderY{ 0 }, bottomBorderY{ 0 };
+            
+            bool showSplitting{ true };
+            bool showLevelNotImp{ true };
             
             GraphMap(Graph* graph);
             void Init() override;

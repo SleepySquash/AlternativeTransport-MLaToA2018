@@ -38,13 +38,98 @@ namespace at
     struct Graph;
     void ArcFlags_ZoneDivision(int axesZones);
     void Overlay_ZoneDivision(int axesZones);
+    void GraphReload();
+    void ShowUsCH();
     namespace GraphComponents
     {
         struct VertexInfo;
     }
     struct Vertex;
+    struct Edge;
+    
+    
     
     struct DataHolder { };
+    
+    
+    
+    struct OverlayVertex;
+    struct OverlayGraph;
+    struct OverlayEdge
+    {
+        OverlayVertex* to{ nullptr };
+        double weight{ 0 };
+        bool out{ false };
+        bool in{ false };
+        
+        DataHolder* data{ nullptr };
+        
+        ~OverlayEdge() { delete data; }
+        OverlayEdge(OverlayVertex* to, double weight, bool out = true, bool in = true) :
+            to(to), weight(weight), out(out), in(in) { }
+        
+        friend class OverlayVertex;
+        friend class OverlayGraph;
+    };
+    struct OverlayVertex
+    {
+        // max amount of edges = 18.446.744.073.709.551.615 (~2 * 10^19)
+        vector<OverlayEdge*> edges;
+        
+        Vertex* vertex{ nullptr };
+        unsigned long zone{ 0 };
+        
+        OverlayVertex(Vertex* v) : vertex(v) { }
+        ~OverlayVertex();
+        OverlayEdge* Link(OverlayVertex* to, double weight, bool out = true, bool in = true);
+        void Sync(OverlayVertex* to, double weight, bool out = true, bool in = true);
+        OverlayEdge* Connection(OverlayVertex* to);
+        
+        inline std::vector<OverlayEdge*>::iterator begin() { return edges.begin(); }
+        inline std::vector<OverlayEdge*>::const_iterator cbegin() const { return edges.cbegin(); }
+        inline std::vector<OverlayEdge*>::iterator end() { return edges.end(); }
+        inline std::vector<OverlayEdge*>::const_iterator cend() const { return edges.cend(); }
+        
+        friend class OverlayEdge;
+        friend class OverlayGraph;
+    };
+    struct OverlayGraph
+    {
+        // max amount of vertices = 18.446.744.073.709.551.615 (~2 * 10^19)
+        vector<OverlayVertex*> vertices;
+        vector<OverlayVertex*> shortestPath;
+        
+        ~OverlayGraph();
+        void Push(OverlayVertex* v);
+        OverlayVertex* operator[](int i);
+        unsigned long size();
+        void Clear();
+        
+        //void DijkstraPreprocessing();
+        //double Dijkstra(unsigned long si, unsigned long ti);
+        
+        inline std::vector<OverlayVertex*>::iterator begin() { return vertices.begin(); }
+        inline std::vector<OverlayVertex*>::const_iterator cbegin() const { return vertices.cbegin(); }
+        inline std::vector<OverlayVertex*>::iterator end() { return vertices.end(); }
+        inline std::vector<OverlayVertex*>::const_iterator cend() const { return vertices.cend(); }
+        
+        friend class OverlayEdge;
+        friend class OverlayVertex;
+    };
+    
+    
+    
+    struct DijkstraOptimizedData
+    {
+        double weight;
+        bool out;
+        Vertex* previous;
+        
+        DijkstraOptimizedData() : weight(std::numeric_limits<double>::infinity()), out(false), previous(nullptr) { }
+    };
+    
+    
+    
     struct DijkstraHolder : DataHolder
     {
         double weight{ 0 };
@@ -100,7 +185,34 @@ namespace at
         double weight{ 0 };
         bool out{ false };
         Vertex* previous{ nullptr };
+        OverlayVertex* overlay{ nullptr };
     };
+    struct OverlayPathHolder : DataHolder
+    {
+        vector<Vertex*> path;
+    };
+    
+    struct CHHolder : DataHolder
+    {
+        unsigned long importance{ 0 };
+        unsigned int level{ 0 };
+        bool hasShortcut{ false };
+        
+        double weight{ 0 };
+        char out{ 0 };
+        Vertex* previous{ nullptr };
+        
+        double weightR{ 0 };
+        Vertex* previousR{ nullptr };
+    };
+    struct ShortcutHolder : DataHolder
+    {
+        Vertex* vertex{ nullptr };
+        ShortcutHolder() { }
+        ShortcutHolder(Vertex* vertex) : vertex(vertex) { }
+    };
+    
+    
     
     struct Edge
     {
@@ -129,7 +241,9 @@ namespace at
         
         ~Vertex();
         void Link(Vertex* to, double weight, bool out = true, bool in = true);
+        Edge* LinkReturn(Vertex* to, double weight, bool out = true, bool in = true);
         void Sync(Vertex* to, double weight, bool out = true, bool in = true);
+        std::pair<Edge*, Edge*> SyncReturn(Vertex* to, double weight, bool out = true, bool in = true);
         Edge* Connection(Vertex* to);
         
         inline std::vector<Edge*>::iterator begin() { return edges.begin(); }
@@ -140,15 +254,9 @@ namespace at
         friend class Edge;
         friend class Graph;
     };
-
-    struct DijkstraOptimizedData
-    {
-        double weight;
-        bool out;
-        Vertex* previous;
-        
-        DijkstraOptimizedData() : weight(std::numeric_limits<double>::infinity()), out(false), previous(nullptr) { }
-    };
+    
+    
+    
     struct Graph
     {
         // max amount of vertices = 18.446.744.073.709.551.615 (~2 * 10^19)
@@ -171,44 +279,38 @@ namespace at
         
         
         void DijkstraPreprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double Dijkstra(unsigned long si, unsigned long ti);
+        double Dijkstra(Vertex* s, Vertex* t);
         void DijkstraDestroy();
         
-        double OriginalDijkstra(unsigned long si, unsigned long ti);
+        double OriginalDijkstra(Vertex* s, Vertex* t);
         
         
         unsigned char timeLabel{ 0 };
         void TDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double TDijkstra(unsigned long si, unsigned long ti);
+        double TDijkstra(Vertex* s, Vertex* t);
         
         
         bool parallelEnding{ false };
         Vertex* parallel_sEnd{ nullptr }, *parallel_tEnd{ nullptr };
-        double ParallelMomentDijkstra(unsigned long si, unsigned long ti);
-        void ReverseMomentDijkstra(unsigned long si, unsigned long ti);
+        double ParallelMomentDijkstra(Vertex* s, Vertex* t);
+        void ReverseMomentDijkstra(Vertex* s, Vertex* t);
         
         char parallelStepsDone{ 30 }; /// <- КОЛИЧЕСТВО ШАГОВ ПОСЛЕ НАХОЖДЕНИЯ СОПРИКОСНОВЕНИЯ
         char mightEndAmount{ 0 }, sEndAmount{ 0 }, tEndAmount{ 0 };
         Vertex* sEnd{ nullptr }, *tEnd{ nullptr };
         vector<pair<Vertex*, Vertex*>> encounters;
         void ParallelDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double ParallelDijkstra(unsigned long si, unsigned long ti);
-        void ReverseDijkstra(unsigned long si, unsigned long ti);
+        double ParallelDijkstra(Vertex* s, Vertex* t);
+        void ReverseDijkstra(Vertex* s, Vertex* t);
         void ParallelDijkstra_Destroy();
-        
-        
-        deque<DijkstraOptimizedData> dijkstraOData;
-        unordered_map<Vertex*, DijkstraOptimizedData*> dijkstraOMap;
-        void ExternalDijkstra_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double ExternalDijkstra(unsigned long si, unsigned long ti);
-        void ExternalDijkstra_Unload();
         
         
         int arcFlagsZonesAxes{ 6 }; /// <- КОЛИЧЕСТВО ЗОН ПО КАЖДОЙ ИЗ ОСИ (общее количество = квадрат этого числа)
         unsigned long ZonesNum{ 0 };
         void ArcFlags_Dijkstra(Vertex* s, Vertex* t);
+        void ArcFlags_Dijkstra(Vertex* s);
         void ArcFlags_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double ArcFlags(unsigned long si, unsigned long ti);
+        double ArcFlags(Vertex* s, Vertex* t);
         void ArcFlags_Destroy();
         
         vector<Vertex*> shortestPath_th;
@@ -216,24 +318,28 @@ namespace at
         void ArcFlags_ParallelDijkstra2(Vertex* s, Vertex* t);
         void ArcFlags_ParallelPreprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
         void ArcFlags_PreprocessingThread();
-        double ParallelArcFlags(unsigned long si, unsigned long ti);
+        double ParallelArcFlags(Vertex* s, Vertex* t);
         
         
         void TableLookup_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double TableLookup(unsigned long si, unsigned long ti);
+        double TableLookup(Vertex* s, Vertex* t);
         void TableLookup_Unload();
         
         
-        void CH_Dijkstra(Vertex* s, Vertex* t);
+        void CH_Dijkstra(Vertex* s);
         void CH_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double CH(unsigned long si, unsigned long ti);
+        double CH(Vertex* s, Vertex* t);
+        void CH_ShortcutUnleash(Vertex* s, Vertex* t, std::vector<Vertex*>::iterator it);
+        //void CH_ShortcutUnleash(Vertex* s, Vertex* t, unsigned long position);
         void CH_Destroy();
         
         
+        OverlayGraph* overlayGraph{ nullptr };
         int overlayZonesAxes{ 3 };
-        void Overlay_Dijkstra(Vertex* s, Vertex* t);
+        void Overlay_DijkstraWithPath(OverlayVertex* s, OverlayVertex* t);
+        double Overlay_Dijkstra(Vertex* s, Vertex* t);
         void Overlay_Preprocessing(unsigned int mode, Vertex* vertex, Edge* edge, unsigned long index);
-        double OverlayGraph(unsigned long si, unsigned long ti);
+        double Overlay(Vertex* s, Vertex* t);
         void Overlay_Destroy();
         
         

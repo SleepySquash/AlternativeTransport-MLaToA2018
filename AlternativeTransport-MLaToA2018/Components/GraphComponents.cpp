@@ -23,6 +23,7 @@ namespace at
             if (graph != nullptr)
             {
                 arcFlagsZonesAxes = graph->arcFlagsZonesAxes;
+                overlayZonesAxes = graph->overlayZonesAxes;
                 
                 using std::placeholders::_1;
                 using std::placeholders::_2;
@@ -53,11 +54,21 @@ namespace at
                                                      true,
                                                      std::bind( &Graph::ArcFlags, graph, _1, _2 ),
                                                      std::bind( &Graph::ArcFlags_Destroy, graph) ));
-                algorithms.push_back(std::make_tuple(L"Parallel ArcFlags",
+                /*algorithms.push_back(std::make_tuple(L"Parallel ArcFlags",
                                                      std::bind( &Graph::ArcFlags_ParallelPreprocessing, graph, _1, _2, _3, _4 ),
                                                      true,
                                                      std::bind( &Graph::ParallelArcFlags, graph, _1, _2 ),
-                                                     std::bind( &Graph::ArcFlags_Destroy, graph) ));
+                                                     std::bind( &Graph::ArcFlags_Destroy, graph) ));*/
+                algorithms.push_back(std::make_tuple(L"Контракционная иерархия",
+                                                     std::bind( &Graph::CH_Preprocessing, graph, _1, _2, _3, _4 ),
+                                                     true,
+                                                     std::bind( &Graph::CH, graph, _1, _2 ),
+                                                     std::bind( &Graph::CH_Destroy, graph) ));
+                algorithms.push_back(std::make_tuple(L"Оверлей граф",
+                                                     std::bind( &Graph::Overlay_Preprocessing, graph, _1, _2, _3, _4 ),
+                                                     true,
+                                                     std::bind( &Graph::Overlay, graph, _1, _2 ),
+                                                     std::bind( &Graph::Overlay_Destroy, graph) ));
                 algorithms.push_back(std::make_tuple(L"Таблица",
                                                      std::bind( &Graph::TableLookup_Preprocessing, graph, _1, _2, _3, _4 ),
                                                      true,
@@ -68,16 +79,11 @@ namespace at
                                                      false,
                                                      std::bind( &Graph::OriginalDijkstra, graph, _1, _2 ),
                                                      std::bind( &Graph::DijkstraDestroy, graph) ));
-                /*algorithms.push_back(std::make_tuple(L"TimeLabel Дейкстра",
+                /*algorithms.push_back(std::make_tuple(L"[TODO] TimeLabel Дейкстра",
                                                      std::bind( &Graph::TDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
                                                      false,
                                                      std::bind( &Graph::TDijkstra, graph, _1, _2 ),
                                                      std::bind( &Graph::DijkstraDestroy, graph) ));*/
-                algorithms.push_back(std::make_tuple(L"External Дейкстра",
-                                                     std::bind( &Graph::ExternalDijkstra_Preprocessing, graph, _1, _2, _3, _4 ),
-                                                     false,
-                                                     std::bind( &Graph::ExternalDijkstra, graph, _1, _2 ),
-                                                     std::bind( &Graph::ExternalDijkstra_Unload, graph) ));
             }
         }
         void GraphMap::Init()
@@ -165,6 +171,18 @@ namespace at
             button_ArcFlagsZones.SetString(L"[Задать кол-во зон по оси]");
             button_ArcFlagsZones.characterSize = 22;
             button_ArcFlagsZones.halign = at::GUIButton::halignEnum::left;
+            
+            button_EnableDisable.SetFont(L"Arial.ttf");
+            button_EnableDisable.SetString(L"[Показать разбиение: ДА]");
+            button_EnableDisable.characterSize = 22;
+            button_EnableDisable.halign = at::GUIButton::halignEnum::left;
+            
+            
+            if (fontLoaded)
+                weightInfo.setFont(*fc::GetFont(L"Arial.ttf"));
+            weightInfo.setFillColor(sf::Color::White);
+            weightInfo.setOutlineColor(sf::Color::Black);
+            weightInfo.setString(L"Карта");
         }
         void GraphMap::Destroy()
         {
@@ -174,11 +192,12 @@ namespace at
         }
         void GraphMap::Update(const sf::Time &elapsedTime)
         {
-            button_Algorithm.Update(elapsedTime);
+            /*button_Algorithm.Update(elapsedTime);
             button_Action.Update(elapsedTime);
             button_DoPreprocessing.Update(elapsedTime);
             button_Graph.Update(elapsedTime);
             button_ArcFlagsZones.Update(elapsedTime);
+            button_EnableDisable.Update(elapsedTime);*/
             
             if (contentUpdateTime > 0)
             {
@@ -194,6 +213,16 @@ namespace at
             {
                 x = move_dx + sf::Mouse::getPosition(*gs::window).x/(scale*gs::scale);
                 y = move_dy + sf::Mouse::getPosition(*gs::window).y/(scale*gs::scale);
+                xright = -x + gs::width/(gs::scale*scale);
+                ybottom = -y + gs::height/(gs::scale*scale);
+                sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
+                
+                ChangeZonesPosition();
+            }
+            if (sf::Touch::isDown(0))
+            {
+                x = move_dx + sf::Touch::getPosition(0, *gs::window).x/(scale*gs::scale);
+                y = move_dy + sf::Touch::getPosition(0, *gs::window).y/(scale*gs::scale);
                 xright = -x + gs::width/(gs::scale*scale);
                 ybottom = -y + gs::height/(gs::scale*scale);
                 sprite.setPosition(x*gs::scale*scale, y*gs::scale*scale);
@@ -476,16 +505,25 @@ namespace at
                 if (v->visible && v->x > -x && v->x < xright && v->y > -y && v->y < ybottom)
                 {
                     float scaledRadius = circle.getRadius();
-                    line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale};
-                    for (auto e : v->vertex->edges)
-                        if (e->out && e->to->vertexinfo->visible)
-                        {
-                            line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale,
-                                                             (y + e->to->vertexinfo->y)*gs::scale*scale };
-                            if (!e->in) line[1].color = sf::Color(255,90,90,140);
-                            window->draw(line, 2, sf::Lines);
-                            if (!e->in) line[1].color = sf::Color(255,255,255,140);
-                        }
+                    if (algorithmIndex != 5 || (algorithmIndex == 5 && !showSplitting))
+                    {
+                        line[0].position = sf::Vector2f{ (x + v->x)*gs::scale*scale, (y + v->y)*gs::scale*scale};
+                        for (auto e : v->vertex->edges)
+                            if (e->out && e->to->vertexinfo->visible)
+                            {
+                                bool passThrough = true;
+                                if (algorithmIndex == 4 && !needsPreprocessing)
+                                    passThrough = ((reinterpret_cast<ShortcutHolder*>(e->data))->vertex == nullptr || showSplitting);
+                                if (passThrough)
+                                {
+                                    line[1].position = sf::Vector2f{ (x + e->to->vertexinfo->x)*gs::scale*scale,
+                                                                     (y + e->to->vertexinfo->y)*gs::scale*scale };
+                                    if (!e->in) line[1].color = sf::Color(255,90,90,140);
+                                    window->draw(line, 2, sf::Lines);
+                                    if (!e->in) line[1].color = sf::Color(255,255,255,140);
+                                }
+                            }
+                    }
                     circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
                     
                     if (v->highlighted) {
@@ -566,9 +604,51 @@ namespace at
                     circle.setFillColor(sf::Color::White);
                 }
             }
-            if (algorithmIndex == 3 || algorithmIndex == 4)
+            if (algorithmIndex == 4)
             {
-                if (!needsPreprocessing && arcFlagsZonesAxes <= 3)
+                if (!needsPreprocessing)
+                {
+                    /*unsigned int maxLvl = reinterpret_cast<CHHolder*>(graph->vertices[0]->data)->level;
+                    for (auto v : vertexes)
+                    {
+                        if (v->visible && v->x > -x && v->x < xright && v->y > -y && v->y < ybottom)
+                        {
+                            CHHolder* data = reinterpret_cast<CHHolder*>(v->vertex->data);
+                            
+                            circle.setFillColor(sf::Color(255 * (float)data->level/maxLvl, 255 * (float)data->level/maxLvl, 255 * (float)data->level/maxLvl, 255));
+                            float scaledRadius = circle.getRadius();
+                            circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
+                            window->draw(circle);
+                        }
+                    }*/
+                    
+                    circle.setRadius(circle.getRadius() * 2);
+                    for (auto v : vertexes)
+                    {
+                        if (v->visible && v->x > -x && v->x < xright && v->y > -y && v->y < ybottom)
+                        {
+                            CHHolder* data = reinterpret_cast<CHHolder*>(v->vertex->data);
+                            float scaledRadius = circle.getRadius();
+                            circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
+                            if (data->out == 1) {
+                                circle.setFillColor(sf::Color::Yellow);
+                                window->draw(circle);
+                            } else if (data->out == 2) {
+                                circle.setFillColor(sf::Color::Blue);
+                                window->draw(circle);
+                            }
+                            weightInfo.setPosition(circle.getPosition().x, circle.getPosition().y);
+                            if (showLevelNotImp) weightInfo.setString(std::to_string(data->level)); else weightInfo.setString(std::to_string(data->importance));
+                            window->draw(weightInfo);
+                        }
+                    }
+                    circle.setRadius(circle.getRadius() / 2);
+                    circle.setFillColor(sf::Color::White);
+                }
+            }
+            if ((algorithmIndex == 3) && showSplitting)
+            {
+                if (!needsPreprocessing)
                 {
                     for (auto v : vertexes)
                     {
@@ -581,21 +661,94 @@ namespace at
                             else
                             {
                                 ArcDijkstraHolder* data = reinterpret_cast<ArcDijkstraHolder*>(v->vertex->data);
-                                if (data->zone == 0) { circle.setFillColor(sf::Color::White); }
-                                else if (data->zone == 1) { circle.setFillColor(sf::Color::Blue); }
-                                else if (data->zone == 2) { circle.setFillColor(sf::Color::Yellow); }
-                                else if (data->zone == 3) { circle.setFillColor(sf::Color::Magenta); }
-                                else if (data->zone == 4) { circle.setFillColor(sf::Color::Red); }
-                                else if (data->zone == 5) { circle.setFillColor(sf::Color::Black); }
-                                else if (data->zone == 6) { circle.setFillColor(sf::Color::Green); }
-                                else if (data->zone == 7) { circle.setFillColor(sf::Color::Cyan); }
-                                else if (data->zone == 8) { circle.setFillColor(sf::Color::White); }
+                                if (data->zone % 9 == 0) { circle.setFillColor(sf::Color::White); }
+                                else if (data->zone % 9 == 1) { circle.setFillColor(sf::Color::Blue); }
+                                else if (data->zone % 9 == 2) { circle.setFillColor(sf::Color::Yellow); }
+                                else if (data->zone % 9 == 3) { circle.setFillColor(sf::Color::Magenta); }
+                                else if (data->zone % 9 == 4) { circle.setFillColor(sf::Color::Red); }
+                                else if (data->zone % 9 == 5) { circle.setFillColor(sf::Color::Black); }
+                                else if (data->zone % 9 == 6) { circle.setFillColor(sf::Color::Green); }
+                                else if (data->zone % 9 == 7) { circle.setFillColor(sf::Color::Cyan); }
+                                else if (data->zone % 9 == 8) { circle.setFillColor(sf::Color::Yellow); }
                             }
                             
                             window->draw(circle);
                         }
                     }
                     circle.setFillColor(sf::Color::White);
+                }
+            }
+            if (algorithmIndex == 5 && showSplitting)
+            {
+                if (!needsPreprocessing)
+                {
+                    for (auto v : vertexes)
+                        if (v->visible && v->x > -x && v->x < xright && v->y > -y && v->y < ybottom)
+                        {
+                            float scaledRadius = circle.getRadius();
+                            circle.setPosition((x + v->x)*gs::scale*scale - scaledRadius, (y + v->y)*gs::scale*scale - scaledRadius);
+                            
+                            if (v == source) { circle.setFillColor(sf::Color::Magenta); }
+                            else
+                            {
+                                OverlayHolder* data = reinterpret_cast<OverlayHolder*>(v->vertex->data);
+                                if (data->zone % 9 == 0) { circle.setFillColor(sf::Color::White); }
+                                else if (data->zone % 9 == 1) { circle.setFillColor(sf::Color::Blue); }
+                                else if (data->zone % 9 == 2) { circle.setFillColor(sf::Color::Yellow); }
+                                else if (data->zone % 9 == 3) { circle.setFillColor(sf::Color::Magenta); }
+                                else if (data->zone % 9 == 4) { circle.setFillColor(sf::Color::Red); }
+                                else if (data->zone % 9 == 5) { circle.setFillColor(sf::Color::Black); }
+                                else if (data->zone % 9 == 6) { circle.setFillColor(sf::Color::Green); }
+                                else if (data->zone % 9 == 7) { circle.setFillColor(sf::Color::Cyan); }
+                                else if (data->zone % 9 == 8) { circle.setFillColor(sf::Color::Yellow); }
+                            }
+                            
+                            window->draw(circle);
+                        }
+                    circle.setFillColor(sf::Color::White);
+                    
+                    
+                    circle.setRadius(circle.getRadius()*1.5);
+                    for (auto v : graph->overlayGraph->vertices)
+                    {
+                        VertexInfo* info = v->vertex->vertexinfo;
+                        if (info->visible && info->x > -x && info->x < xright && info->y > -y && info->y < ybottom)
+                        {
+                            float scaledRadius = circle.getRadius();
+                            circle.setPosition((x + info->x)*gs::scale*scale - scaledRadius, (y + info->y)*gs::scale*scale - scaledRadius);
+                            
+                            OverlayHolder* data = reinterpret_cast<OverlayHolder*>(v->vertex->data);
+                            
+                            if (data->zone % 9 == 0) { circle.setFillColor(sf::Color::White); }
+                            else if (data->zone % 9 == 1) { circle.setFillColor(sf::Color::Blue); }
+                            else if (data->zone % 9 == 2) { circle.setFillColor(sf::Color::Yellow); }
+                            else if (data->zone % 9 == 3) { circle.setFillColor(sf::Color::Magenta); }
+                            else if (data->zone % 9 == 4) { circle.setFillColor(sf::Color::Red); }
+                            else if (data->zone % 9 == 5) { circle.setFillColor(sf::Color::Black); }
+                            else if (data->zone % 9 == 6) { circle.setFillColor(sf::Color::Green); }
+                            else if (data->zone % 9 == 7) { circle.setFillColor(sf::Color::Cyan); }
+                            else if (data->zone % 9 == 8) { circle.setFillColor(sf::Color::Yellow); }
+                            sf::Color color = circle.getFillColor(); color.a = 140;
+                            if (info == source) { circle.setFillColor(sf::Color::Magenta); }
+                            
+                            line[0].color = color;
+                            line[0].position = sf::Vector2f{ (x + info->x)*gs::scale*scale, (y + info->y)*gs::scale*scale};
+                            for (auto e : v->edges)
+                                if (e->out && e->to->vertex->vertexinfo->visible)
+                                {
+                                    line[1].position = sf::Vector2f{ (x + e->to->vertex->vertexinfo->x)*gs::scale*scale,
+                                        (y + e->to->vertex->vertexinfo->y)*gs::scale*scale };
+                                    if (!e->in) line[1].color = sf::Color(255,90,90,140);
+                                    window->draw(line, 2, sf::Lines);
+                                    if (!e->in) line[1].color = color;
+                                }
+                            
+                            window->draw(circle);
+                        }
+                    }
+                    circle.setFillColor(sf::Color::White);
+                    circle.setRadius(circle.getRadius()/1.5);
+                    line[0].color = line[1].color = sf::Color(255,255,255,140);
                 }
             }
             if (!graph->shortestPath.empty())
@@ -681,9 +834,45 @@ namespace at
                     info.setString(string); window->draw(info);
                     yy += (info.getLocalBounds().height + 2*gs::scale)*2;
                     
-                    if (algorithmIndex == 3 || algorithmIndex == 4)
+                    if (algorithmIndex == 5)
                     {
-                        info.setPosition(info.getPosition().x, yy); string = L"Зон по оси: " + std::to_wstring(arcFlagsZonesAxes);
+                        string = L"Вершин в Оверлее: ";
+                        if (!needsPreprocessing) string += std::to_wstring(graph->overlayGraph->vertices.size());
+                        else string += L"-";
+                        info.setPosition(info.getPosition().x, yy);
+                        info.setString(string); window->draw(info); info.setFillColor(sf::Color::White);
+                        yy += info.getLocalBounds().height + 2*gs::scale;
+                    }
+                    if (algorithmIndex == 3 ||algorithmIndex == 5)
+                    {
+                        button_EnableDisable.SetPosition(gs::width - panelShape.getSize().x + 6*gs::scale, yy);
+                        button_EnableDisable.Draw(window);
+                        yy += (button_EnableDisable.text.getLocalBounds().height + 5*gs::scale);
+                    }
+                    if (algorithmIndex == 4)
+                    {
+                        if (showSplitting) string = L"[Показать разбиение: ДА]"; else string = L"[Показать разбиение: НЕТ]";
+                        button_EnableDisable.SetString(string);
+                        button_EnableDisable.SetPosition(gs::width - panelShape.getSize().x + 6*gs::scale, yy);
+                        button_EnableDisable.Draw(window);
+                        yy += (button_EnableDisable.text.getLocalBounds().height + 5*gs::scale);
+                        
+                        if (showLevelNotImp) string = L"[На вершинах: УРОВЕНЬ]"; else string = L"[На вершинах: ВАЖНОСТЬ]";
+                        button_EnableDisable.SetString(string);
+                        button_EnableDisable.SetPosition(gs::width - panelShape.getSize().x + 6*gs::scale, yy);
+                        button_EnableDisable.Draw(window);
+                        yy += (button_EnableDisable.text.getLocalBounds().height + 5*gs::scale);
+                        
+                        button_EnableDisable.SetString(L"[Распределение уровней]");
+                        button_EnableDisable.SetPosition(gs::width - panelShape.getSize().x + 6*gs::scale, yy);
+                        button_EnableDisable.Draw(window);
+                        yy += (button_EnableDisable.text.getLocalBounds().height + 5*gs::scale)*2;
+                    }
+                    if (algorithmIndex == 3 || algorithmIndex == 5)
+                    {
+                        info.setPosition(info.getPosition().x, yy); string = L"Зон по оси: ";
+                        if (algorithmIndex == 6) string += std::to_wstring(overlayZonesAxes);
+                        else string += std::to_wstring(arcFlagsZonesAxes);
                         info.setString(string); window->draw(info); info.setFillColor(sf::Color::White);
                         yy += info.getLocalBounds().height + 2*gs::scale;
                         
@@ -776,6 +965,7 @@ namespace at
             button_Graph.Resize(width, height);
             button_DoPreprocessing.Resize(width, height);
             button_ArcFlagsZones.Resize(width, height);
+            button_EnableDisable.Resize(width, height);
             
             if (button_Algorithm.text.getLocalBounds().width + 20*gs::scale > panelShape.getSize().x)
                 button_Algorithm.text.setScale((float)panelShape.getSize().x / (button_Algorithm.text.getLocalBounds().width + 20*gs::scale), 1);
@@ -801,14 +991,93 @@ namespace at
             DrawOverlay();*/
             
             ZonesResize(width, height);
+            
+            
+            weightInfo.setCharacterSize(20 * gs::scale);
+            weightInfo.setOutlineThickness(gs::scale);
         }
         void GraphMap::PollEvent(sf::Event& event)
         {
-            if (event.type == sf::Event::MouseButtonPressed &&
-                (event.mouseButton.button == sf::Mouse::Right || event.mouseButton.button == sf::Mouse::Middle))
+            if ((event.type == sf::Event::MouseButtonPressed &&
+                (event.mouseButton.button == sf::Mouse::Right || event.mouseButton.button == sf::Mouse::Middle)))
             {
                 move_dx = x - event.mouseButton.x/(scale*gs::scale);
                 move_dy = y - event.mouseButton.y/(scale*gs::scale);
+            }
+            else if (event.type == sf::Event::TouchBegan)
+            {
+                if (event.touch.finger == 0)
+                {
+                    move_dx = x - event.touch.x/(scale*gs::scale);
+                    move_dy = y - event.touch.y/(scale*gs::scale);
+                }
+            }
+            else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Middle)
+            {
+                bool letItPass{ false };
+                if (!graph->shortestPath.empty())
+                {
+                    if (distance != std::numeric_limits<double>::infinity())
+                        letItPass = true;
+                    for (auto v : graph->shortestPath)
+                        v->vertexinfo->highlighted = false;
+                    graph->shortestPath.clear();
+                }
+                
+                bool found{ false };
+                if (!needsPreprocessing && !letItPass)
+                {
+                    float mx = -x + event.mouseButton.x/(gs::scale * scale);
+                    float my = -y + event.mouseButton.y/(gs::scale * scale);
+                    //float actualRadius = ((scale >= 2.5) ? 2.5/scale : 1.f) * pointRadius;
+                    
+                    double minDistance = std::numeric_limits<double>::infinity();
+                    VertexInfo* vertex{ nullptr }; unsigned long srci{ 0 };
+                    for (unsigned long i = vertexes.size() - 1; i >= 0 && !found; --i)
+                    {
+                        double distance = sqrt(pow(mx - vertexes[i]->x, 2) + pow(my - vertexes[i]->y, 2));
+                        if (distance < minDistance)
+                        {
+                            minDistance = distance;
+                            vertex = vertexes[i]; srci = i;
+                        }
+                        if (i == 0) break;
+                    }
+                    if (vertex != nullptr)
+                    {
+                        distance = std::numeric_limits<double>::infinity();
+                        timeRuntime = 0;
+                        if (source == vertex) {
+                            source->highlighted = false;
+                            source = nullptr;
+                        } else if (source == nullptr) {
+                            source = vertex; sourcei = srci;
+                            source->highlighted = true;
+                        } else {
+                            graph->shortestPath.clear();
+                            
+                            sf::Clock clock;
+                            if ((std::get<3>(algorithms[algorithmIndex])) != nullptr) {
+                                std::function<double(Vertex*, Vertex*)> func = std::get<3>(algorithms[algorithmIndex]);
+                                distance = func(source->vertex, vertex->vertex); }
+                            timeRuntime = clock.getElapsedTime().asSeconds();
+                            
+                            source->highlighted = false;
+                            source = nullptr;
+                            if (!graph->shortestPath.empty())
+                                for (auto v : graph->shortestPath)
+                                    v->vertexinfo->highlighted = true;
+                        }
+                        found = true;
+                        event = sf::Event();
+                    }
+                }
+                if (!found)
+                {
+                    if (source != nullptr)
+                        source->highlighted = false;
+                    source = nullptr;
+                }
             }
             else if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left)
             {
@@ -998,8 +1267,8 @@ namespace at
                                 
                                 sf::Clock clock;
                                 if ((std::get<3>(algorithms[algorithmIndex])) != nullptr) {
-                                    std::function<double(unsigned long, unsigned long)> func = std::get<3>(algorithms[algorithmIndex]);
-                                    distance = func(sourcei, srci); }
+                                    std::function<double(Vertex*, Vertex*)> func = std::get<3>(algorithms[algorithmIndex]);
+                                    distance = func(source->vertex, vertex->vertex); }
                                 timeRuntime = clock.getElapsedTime().asSeconds();
                                 
                                 source->highlighted = false;
@@ -1089,6 +1358,10 @@ namespace at
                                     {
                                         std::function<void()> func = std::get<4>(algorithms[algorithmIndex]);
                                         func();
+                                    }
+                                    if (algorithmIndex == 4) {
+                                        if (showSplitting) button_EnableDisable.SetString(L"[Показать разбиение: ДА]");
+                                        else button_EnableDisable.SetString(L"[Показать разбиение: НЕТ]");
                                     }
                                     algorithmIndex = i;
                                     break;
@@ -1194,37 +1467,106 @@ namespace at
                                                 { Clear(); Load(utf16(resourcePath()) + L"Data/Graph/eltech.txt"); }
                                             else
                                             {
-                                                if (algorithmIndex == 3 || algorithmIndex == 4)
+                                                if (algorithmIndex == 4)
                                                 {
-                                                    button_ArcFlagsZones.PollEvent(event);
-                                                    if (button_ArcFlagsZones.IsPressed())
+                                                    button_EnableDisable.PollEvent(event);
+                                                    if (button_EnableDisable.IsPressed())
+                                                        ShowUsCH();
+                                                    else
                                                     {
-                                                        if (graph->arcFlagsZonesAxes == 3)
-                                                            graph->arcFlagsZonesAxes = 6;
-                                                        else if (graph->arcFlagsZonesAxes == 6)
-                                                            graph->arcFlagsZonesAxes = 8;
-                                                        else if (graph->arcFlagsZonesAxes == 8)
-                                                            graph->arcFlagsZonesAxes = 16;
-                                                        else if (graph->arcFlagsZonesAxes == 16)
-                                                            graph->arcFlagsZonesAxes = 32;
-                                                        else if (graph->arcFlagsZonesAxes == 32)
-                                                            graph->arcFlagsZonesAxes = 256;
-                                                        else if (graph->arcFlagsZonesAxes == 256)
-                                                            graph->arcFlagsZonesAxes = 2;
-                                                        else if (graph->arcFlagsZonesAxes == 2)
-                                                            graph->arcFlagsZonesAxes = 3;
+                                                        button_EnableDisable.SetString(L"[На вершинах: ВАЖНОСТЬ]");
+                                                        button_EnableDisable.SetPosition(button_EnableDisable.text.getPosition().x, button_EnableDisable.text.getPosition().y - (button_EnableDisable.text.getLocalBounds().height + 5*gs::scale));
+                                                        button_EnableDisable.PollEvent(event);
+                                                        if (button_EnableDisable.IsPressed())
+                                                            showLevelNotImp = !showLevelNotImp;
                                                         else
-                                                            graph->arcFlagsZonesAxes = 3;
-                                                        arcFlagsZonesAxes = graph->arcFlagsZonesAxes;
-                                                        
-                                                        if (!graph->shortestPath.empty()) {
-                                                            for (auto v : graph->shortestPath)
-                                                                v->vertexinfo->highlighted = false;
-                                                            graph->shortestPath.clear();
-                                                        } graph->shortestPath.clear();
-                                                        distance = std::numeric_limits<double>::infinity(); time = distance;
-                                                        timePretime = 0; timeRuntime = 0;
-                                                        needsPreprocessing = true;
+                                                        {
+                                                            button_EnableDisable.SetString(L"[Показать разбиение: НЕТ]");
+                                                            button_EnableDisable.SetPosition(button_EnableDisable.text.getPosition().x, button_EnableDisable.text.getPosition().y - (button_EnableDisable.text.getLocalBounds().height + 5*gs::scale));
+                                                            button_EnableDisable.PollEvent(event);
+                                                            if (button_EnableDisable.IsPressed())
+                                                                showSplitting = !showSplitting;
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (algorithmIndex == 3 || algorithmIndex == 4 || algorithmIndex == 5)
+                                                    {
+                                                        button_EnableDisable.PollEvent(event);
+                                                        if (button_EnableDisable.IsPressed())
+                                                        {
+                                                            showSplitting = !showSplitting;
+                                                            if (showSplitting)
+                                                                button_EnableDisable.SetString(L"[Показать разбиние: ДА]");
+                                                            else button_EnableDisable.SetString(L"[Показать разбиние: НЕТ]");
+                                                        }
+                                                    }
+                                                    if (algorithmIndex == 3)
+                                                    {
+                                                        button_ArcFlagsZones.PollEvent(event);
+                                                        if (button_ArcFlagsZones.IsPressed())
+                                                        {
+                                                            if (graph->arcFlagsZonesAxes == 3)
+                                                                graph->arcFlagsZonesAxes = 6;
+                                                            else if (graph->arcFlagsZonesAxes == 6)
+                                                                graph->arcFlagsZonesAxes = 8;
+                                                            else if (graph->arcFlagsZonesAxes == 8)
+                                                                graph->arcFlagsZonesAxes = 16;
+                                                            else if (graph->arcFlagsZonesAxes == 16)
+                                                                graph->arcFlagsZonesAxes = 32;
+                                                            else if (graph->arcFlagsZonesAxes == 32)
+                                                                graph->arcFlagsZonesAxes = 256;
+                                                            else if (graph->arcFlagsZonesAxes == 256)
+                                                                graph->arcFlagsZonesAxes = 2;
+                                                            else if (graph->arcFlagsZonesAxes == 2)
+                                                                graph->arcFlagsZonesAxes = 3;
+                                                            else
+                                                                graph->arcFlagsZonesAxes = 3;
+                                                            arcFlagsZonesAxes = graph->arcFlagsZonesAxes;
+                                                            
+                                                            if (!graph->shortestPath.empty()) {
+                                                                for (auto v : graph->shortestPath)
+                                                                    v->vertexinfo->highlighted = false;
+                                                                graph->shortestPath.clear();
+                                                            } graph->shortestPath.clear();
+                                                            distance = std::numeric_limits<double>::infinity(); time = distance;
+                                                            timePretime = 0; timeRuntime = 0;
+                                                            needsPreprocessing = true;
+                                                        }
+                                                    }
+                                                    else if (algorithmIndex == 5)
+                                                    {
+                                                        button_ArcFlagsZones.PollEvent(event);
+                                                        if (button_ArcFlagsZones.IsPressed())
+                                                        {
+                                                            if (graph->overlayZonesAxes == 3)
+                                                                graph->overlayZonesAxes = 6;
+                                                            else if (graph->overlayZonesAxes == 6)
+                                                                graph->overlayZonesAxes = 8;
+                                                            else if (graph->overlayZonesAxes == 8)
+                                                                graph->overlayZonesAxes = 16;
+                                                            else if (graph->overlayZonesAxes == 16)
+                                                                graph->overlayZonesAxes = 32;
+                                                            else if (graph->overlayZonesAxes == 32)
+                                                                graph->overlayZonesAxes = 256;
+                                                            else if (graph->overlayZonesAxes == 256)
+                                                                graph->overlayZonesAxes = 2;
+                                                            else if (graph->overlayZonesAxes == 2)
+                                                                graph->overlayZonesAxes = 3;
+                                                            else
+                                                                graph->overlayZonesAxes = 3;
+                                                            overlayZonesAxes = graph->overlayZonesAxes;
+                                                            
+                                                            if (!graph->shortestPath.empty()) {
+                                                                for (auto v : graph->shortestPath)
+                                                                    v->vertexinfo->highlighted = false;
+                                                                graph->shortestPath.clear();
+                                                            } graph->shortestPath.clear();
+                                                            distance = std::numeric_limits<double>::infinity(); time = distance;
+                                                            timePretime = 0; timeRuntime = 0;
+                                                            needsPreprocessing = true;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1239,7 +1581,7 @@ namespace at
             else if (event.type == sf::Event::KeyReleased && event.key.code == sf::Keyboard::Num0)
             {
                 /// Служебное событие для глобальных корректировок
-                
+                scale = 0.830086;
                 /*for (auto v : graph->vertices)
                     for (auto e : v->edges)
                         e->weight *= 2.309090909090909;*/
@@ -1283,9 +1625,15 @@ namespace at
                             scale += (scale < 0.6) ? 0.06*scale * event.mouseWheelScroll.delta : 0.05 * event.mouseWheelScroll.delta;
                             if (scale < 0.05) scale = 0.05;
                             if (scale >= 2.5) {
-                                circle.setRadius(2.5/scale * pointRadius * gs::scale*scale);
-                                circle.setOutlineThickness(2.5/scale * gs::scale*scale);
+                                weightInfo.setCharacterSize(20 * 2.5 * gs::scale);
+                                weightInfo.setOutlineThickness(2.5 * gs::scale);
+                                
+                                circle.setRadius(2.5 * pointRadius * gs::scale);
+                                circle.setOutlineThickness(2.5 * gs::scale);
                             } else {
+                                weightInfo.setCharacterSize(20 * scale * gs::scale);
+                                weightInfo.setOutlineThickness(scale * gs::scale);
+                                
                                 circle.setRadius(pointRadius * gs::scale*scale);
                                 circle.setOutlineThickness(gs::scale*scale); }
                             
@@ -1713,5 +2061,65 @@ namespace at
                     data->zone = i;
                 }
         map->graph->ZonesNum = rects.size();
+    }
+    
+    void GraphReload()
+    {
+        GraphComponents::GraphMap* map = gs::static_graphMap;
+        
+        std::wstring file = map->graph->filePath;
+        map->Clear();
+        map->Load(file);
+    }
+    
+    void ShowUsCH()
+    {
+        GraphComponents::GraphMap* map = gs::static_graphMap;
+        
+        float yy = 100;
+        float ystep = 55;
+        float xx = 400;
+        float xstep = 25;
+        
+        for (auto v : map->vertexes)
+        {
+            v->x = xx;
+            v->y = yy;
+            xx += xstep;
+        }
+        
+        std::sort(map->graph->vertices.begin(), map->graph->vertices.end(),
+                  [](const Vertex* a, const Vertex* b) -> bool
+                  {
+                      return reinterpret_cast<CHHolder*>(a->data)->level > reinterpret_cast<CHHolder*>(b->data)->level;
+                  });
+        
+        for (unsigned int lvl = reinterpret_cast<CHHolder*>(map->graph->vertices[0]->data)->level; lvl > 0; --lvl)
+        {
+            for (auto v : map->vertexes)
+                if (reinterpret_cast<CHHolder*>(v->vertex->data)->level == lvl)
+                    v->y = yy;
+            yy += ystep;
+        }
+        
+        /*std::sort(map->graph->vertices.begin(), map->graph->vertices.end(),
+                  [](const Vertex* a, const Vertex* b) -> bool
+                  {
+                      return reinterpret_cast<CHHolder*>(a->data)->level > reinterpret_cast<CHHolder*>(b->data)->level;
+                  });
+        
+        float yy = 100; float ystep = 130; float xxs = 1000; float xstep = 60;
+        for (unsigned int lvl = reinterpret_cast<CHHolder*>(map->graph->vertices[0]->data)->level; lvl > 0; --lvl)
+        {
+            float xx = xxs;
+            for (auto v : map->vertexes)
+                if (reinterpret_cast<CHHolder*>(v->vertex->data)->level == lvl)
+                {
+                    v->x = xx;
+                    v->y = yy;
+                    xx += xstep;
+                }
+            yy += ystep;
+        }*/
     }
 }
